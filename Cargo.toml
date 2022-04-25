@@ -9,3 +9,4 @@ edition = "2021"
 
 GSL = "4.0"
 
+assert_approx_eq = "1.1.0"
