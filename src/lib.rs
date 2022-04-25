@@ -84,8 +84,10 @@ impl Correlation for Spearman {
 
         //p-val two sided
 
-        let p_val = 
-        return (rho,2.1);
+        let t = rho * (self.degrees_of_freedom / ((rho + 1.0) * (1.0 - rho))).sqrt();
+        let p_val = 2.0* (tdist_Q(t.abs(), self.degrees_of_freedom));
+ 
+        return (rho,p_val);
     }
 }
 
@@ -118,6 +120,18 @@ mod tests {
         let new_spearman = Spearman::new(5);
 
         assert_eq!(new_spearman,Spearman{n:5, degrees_of_freedom:3.0});
+
+    }
+    #[test]
+    fn test_spearman_correlation(){
+        let new_spearman = Spearman::new(5);
+
+        let (s_rho,p_val) = new_spearman.correlate(&[1.,2.,3.,4.,5.], &[5.,6.,7.,8.,7.]);
+
+
+        assert_approx_eq!(s_rho,0.079603960396039,2f64);
+        assert_approx_eq!(p_val,0.43111687,2f64)
+
 
     }
 }
