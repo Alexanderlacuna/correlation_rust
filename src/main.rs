@@ -3,6 +3,7 @@ use rgsl::{
     statistics::{correlation, spearman},
 };
 
+use assert_approx_eq::assert_approx_eq;
 
 trait Correlation {
     fn correlate(&self,x:&[f64],y:&[f64]) ->(f64,f64);
@@ -33,7 +34,10 @@ impl Pearson {
 
 impl Correlation for Pearson {
     fn correlate(&self,x:&[f64],y:&[f64]) ->(f64,f64){
-        (1.2,0.1)
+
+        let corr_coeff = correlation(x, 1, y, 1, self.n);
+
+        (corr_coeff,0.1)
     }
 }
 
@@ -59,7 +63,7 @@ mod tests {
         let new_pearson = Pearson::new(3);
         let (corr_coeff,p_val) = new_pearson.correlate(&[1.,2.,3.,4.,5.] ,&[1.,2.,3.,4.,5.]);
 
-        assert_eq!(corr_coeff,1.2);
+        assert_eq!(format!("{:.2}", corr_coeff),"1.00");
         assert_eq!(p_val,0.1);
     }
 }
