@@ -1,0 +1,35 @@
+use rgsl::{
+    randist::t_distribution::{tdist_P, tdist_Q},
+    statistics::{correlation, spearman},
+};
+
+
+trait Correlation {
+    fn correlate(&self,x:&[f64],y:&[f64]) ->(f64,f64);
+}
+
+struct Pearson {
+    n: usize,
+    degree_of_freedom:f64,
+}
+
+impl Pearson {
+    fn new(n:usize) -> Self {
+
+        Self {
+            n,
+            degree_of_freedom:(n - 2) as f64,
+        }
+    }
+}
+
+
+impl Correlation for Pearson {
+    fn correlate(&self,x:&[f64],y:&[f64]) ->(f64,f64){
+        (1.2,0.1)
+    }
+}
+
+fn main() {
+
+}
