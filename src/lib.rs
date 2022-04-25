@@ -76,7 +76,16 @@ impl Spearman {
 impl Correlation for Spearman {
 
     fn correlate(&self,x:&[f64],y:&[f64]) -> (f64,f64){
-        (1.2,2.1)
+
+        //dditional workspace of size 2*n is required in work
+        let mut vec = Vec::with_capacity(2 * self.n);
+        let workspace: &mut [f64] = vec.as_mut_slice();
+        let rho = spearman(x, 1, y, 1, self.n, workspace);
+
+        //p-val two sided
+
+        let p_val = 
+        return (rho,2.1);
     }
 }
 
