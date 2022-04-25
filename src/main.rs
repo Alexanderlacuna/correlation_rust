@@ -8,6 +8,13 @@ trait Correlation {
     fn correlate(&self,x:&[f64],y:&[f64]) ->(f64,f64);
 }
 
+
+pub fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+
+
 struct Pearson {
     n: usize,
     degree_of_freedom:f64,
@@ -32,4 +39,13 @@ impl Correlation for Pearson {
 
 fn main() {
 
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_add_numbers() {
+        assert_eq!(add(2,3),5)
+    }
 }
