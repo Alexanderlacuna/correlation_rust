@@ -18,7 +18,7 @@ pub fn add(a: i32, b: i32) -> i32 {
 #[derive(PartialEq, Debug)]
 struct Pearson {
     n: usize,
-    degree_of_freedom:f64,
+    degrees_of_freedom:f64,
 }
 
 impl Pearson {
@@ -26,7 +26,7 @@ impl Pearson {
 
         Self {
             n,
-            degree_of_freedom:(n - 2) as f64,
+            degrees_of_freedom:(n - 2) as f64,
         }
     }
 }
@@ -37,7 +37,19 @@ impl Correlation for Pearson {
 
         let corr_coeff = correlation(x, 1, y, 1, self.n);
 
-        (corr_coeff,0.1)
+        //compute p_val two sided
+
+         // P-value (two-sided)
+        // Based on R's cor.test method (https://github.com/SurajGupta/r-source/blob/a28e609e72ed7c47f6ddfbb86c85279a0750f0b7/src/library/stats/R/cor.test.R#L21
+
+
+        let statistic = self.degrees_of_freedom.sqrt() * corr_coeff / (1.0 - corr_coeff.powi(2)).sqrt();
+
+        let p_val = 2.0
+        * tdist_P(statistic, self.degrees_of_freedom)
+            .min(tdist_Q(statistic, self.degrees_of_freedom));
+
+        (corr_coeff,p_val)
     }
 }
 
@@ -56,7 +68,7 @@ mod tests {
     #[test]
     fn test_pearson(){
         let new_pearson = Pearson::new(5);
-        assert_eq!(new_pearson,Pearson{n:5, degree_of_freedom:3.0});
+        assert_eq!(new_pearson,Pearson{n:5, degrees_of_freedom:3.0});
     }
     #[test]
     fn test_pearson_correlation(){
@@ -64,6 +76,6 @@ mod tests {
         let (corr_coeff,p_val) = new_pearson.correlate(&[1.,2.,3.,4.,5.] ,&[1.,2.,3.,4.,5.]);
 
         assert_eq!(format!("{:.2}", corr_coeff),"1.00");
-        assert_eq!(p_val,0.1);
+        assert_approx_eq!(p_val,1.341575855,2f64);
     }
 }
