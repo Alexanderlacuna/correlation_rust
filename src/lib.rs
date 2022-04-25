@@ -7,6 +7,8 @@ use assert_approx_eq::assert_approx_eq;
 
 trait Correlation {
     fn correlate(&self,x:&[f64],y:&[f64]) ->(f64,f64);
+
+    
 }
 
 
@@ -21,6 +23,8 @@ struct Pearson {
     degrees_of_freedom:f64,
 }
 
+
+
 impl Pearson {
     fn new(n:usize) -> Self {
 
@@ -30,6 +34,8 @@ impl Pearson {
         }
     }
 }
+
+
 
 
 impl Correlation for Pearson {
@@ -53,9 +59,28 @@ impl Correlation for Pearson {
     }
 }
 
-fn main() {
 
+#[derive(PartialEq, Debug)]
+struct Spearman {
+    n: usize,
+    degrees_of_freedom:f64,
 }
+
+
+impl Spearman {
+    fn new(n:usize) ->Spearman {
+        Spearman { n: n, degrees_of_freedom: (n - 2) as f64 }
+    }
+}
+
+impl Correlation for Spearman {
+
+    fn correlate(&self,x:&[f64],y:&[f64]) -> (f64,f64){
+        (1.2,2.1)
+    }
+}
+
+
 
 #[cfg(test)]
 mod tests {
@@ -77,5 +102,13 @@ mod tests {
 
         assert_eq!(format!("{:.2}", corr_coeff),"1.00");
         assert_approx_eq!(p_val,1.341575855,2f64);
+    }
+
+    #[test]
+    fn test_spearman(){
+        let new_spearman = Spearman::new(5);
+
+        assert_eq!(new_spearman,Spearman{n:5, degrees_of_freedom:3.0});
+
     }
 }
