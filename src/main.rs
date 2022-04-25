@@ -14,7 +14,7 @@ pub fn add(a: i32, b: i32) -> i32 {
 }
 
 
-
+#[derive(PartialEq, Debug)]
 struct Pearson {
     n: usize,
     degree_of_freedom:f64,
@@ -47,5 +47,19 @@ mod tests {
     #[test]
     fn test_add_numbers() {
         assert_eq!(add(2,3),5)
+    }
+
+    #[test]
+    fn test_pearson(){
+        let new_pearson = Pearson::new(5);
+        assert_eq!(new_pearson,Pearson{n:5, degree_of_freedom:3.0});
+    }
+    #[test]
+    fn test_pearson_correlation(){
+        let new_pearson = Pearson::new(3);
+        let (corr_coeff,p_val) = new_pearson.correlate(&[1.,2.,3.,4.,5.] ,&[1.,2.,3.,4.,5.]);
+
+        assert_eq!(corr_coeff,1.2);
+        assert_eq!(p_val,0.1);
     }
 }
