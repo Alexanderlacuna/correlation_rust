@@ -1,23 +1,53 @@
 //file reads dataset file and also does the parsing
 //aim is to read this as a stream
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, BufRead};
 use std::path::Path;
+
+
+pub struct BufferReader {
+    reader:BufReader<File>
+}
+
+
+impl BufferReader{
+    fn new(file_path:&str) -> std::io::Result<Self>{
+        let file = File::open(Path::new(file_path))?;
+        //add file validator
+
+        return Ok(Self{
+            reader:BufReader::new(file)
+        });
+
+        
+
+    }
+
+    fn read_line <'a>(&mut self,buf:&'a mut String) -> Option<std::io::Result<&'a mut String>>{
+        //to avoid allocation for each new line
+
+        buf.clear();
+
+        self.reader.read_line(buf).map(|u  | {
+            if  u == 0  as usize {
+                return None
+            }
+
+            Some(buf)
+
+            
+       
+        }).transpose()
+
+}
+}
 
 
 pub fn file_reader(file_path:&str) ->Result<BufReader<File>, Box<dyn std::error::Error>>{
 
-
-    let y = Path::new(file_path);
-
-    //println!("the file path is {}",y.display();
-    println!("{}",y.display());
-
     let file  = File::open(Path::new(file_path))?;
 
     let buf_reader = BufReader::new(file);
-
-
     Ok(buf_reader)
 }
 
