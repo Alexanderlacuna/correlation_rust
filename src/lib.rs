@@ -5,12 +5,7 @@ use rgsl::{
 };
 use assert_approx_eq::assert_approx_eq;
 
-use std::io::prelude::*;
 
-use reader::{
-    file_reader,
-    add_numbers_2
-};
 
 
 trait Correlation {
@@ -109,7 +104,12 @@ impl Correlation for Spearman {
 #[cfg(test)]
 mod tests {
 
-    use crate::reader::add_numbers_2;
+
+    use crate::reader::{
+        add_numbers_2,
+        BufferReader,
+        file_reader
+    };
 
     use super::*;
     #[test]
@@ -168,17 +168,30 @@ mod tests {
     fn test_file_reader() {
       let expected_results = file_reader("/home/kabui/correlation_rust/src/mock_dataset.txt");
 
-    
-
       assert!(expected_results.is_ok());
 
-     // let data_1 = [
-       //   String::from("9 ,5 ,0 ,7 ,6 ,1 ,5 ,0"),
-         // String::from("3 ,9 ,4 ,2 ,2 ,7 ,2 ,4"),
-           // String::from("7 ,1 ,7 ,2 ,2 ,5 ,6 ,5"),
-           // String::from("4 ,5 ,1 ,1 ,6 ,1 ,8 ,7")
-      //];
- 
+    }
+
+    # [test]
+    fn test_file_reader_2(){
+    
+        let mut buffer_reader = BufferReader::new("/home/kabui/correlation_rust/src/mock_dataset.txt").unwrap();
+        let mut buf = String::new();
+        let  mut data = [
+            "9 ,5 ,0 ,7 ,6 ,1 ,5 ,0\n",
+            "3 ,9 ,4 ,2 ,2 ,7 ,2 ,4\n",
+             "7 ,1 ,7 ,2 ,2 ,5 ,6 ,5\n",
+            "4 ,5 ,1 ,1 ,6 ,1 ,8 ,7\n"
+            ].iter();
+
+
+        while let Some(val) = buffer_reader.read_line(& mut buf){
+
+            if let Some(expected) = data.next(){
+                assert_eq!(*expected,val.unwrap())
+            }
+
+        }
 
     }
 }

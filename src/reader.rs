@@ -11,7 +11,7 @@ pub struct BufferReader {
 
 
 impl BufferReader{
-    fn new(file_path:&str) -> std::io::Result<Self>{
+    pub fn new(file_path:&str) -> std::io::Result<Self>{
         let file = File::open(Path::new(file_path))?;
         //add file validator
 
@@ -23,7 +23,7 @@ impl BufferReader{
 
     }
 
-    fn read_line <'a>(&mut self,buf:&'a mut String) -> Option<std::io::Result<&'a mut String>>{
+    pub fn read_line <'a>(&mut self,buf:&'a mut String) -> Option<std::io::Result<&'a mut String>>{
         //to avoid allocation for each new line
 
         buf.clear();
