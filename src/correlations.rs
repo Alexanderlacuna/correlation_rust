@@ -127,3 +127,36 @@ mod test{
     }
 
 }
+
+
+//structure we need file for y vals,x_val ,correlation method to use
+
+
+struct Compute <'a>{
+    x_vals:Vec<f64>,
+    dataset_path:&'a str,
+    method: CorrelationMethod
+
+}
+
+impl <'a> Compute<'a>{
+    fn new (method:&str,dataset_path:&'a str,x_vals:Vec<f64>) -> Self{
+
+        Self {
+            x_vals:x_vals,
+            dataset_path:dataset_path,
+            method: CorrelationMethod::pearson
+        }
+
+    }
+
+    fn compute(){
+        
+    }
+
+}
+
+enum CorrelationMethod {
+    pearson,
+    spearman
+}
