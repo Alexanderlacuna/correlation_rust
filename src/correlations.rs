@@ -5,7 +5,8 @@ use rgsl::{
 
 pub trait Correlation {
     
-    fn correlate(&self,x:&[f64],y:&[f64]) ->(f64,f64);   
+    fn correlate(&self,x:&[f64],y:&[f64]) ->(f64,f64);
+
 }
 
 #[derive(PartialEq, Debug)]
@@ -21,6 +22,16 @@ struct Spearman {
 }
 
 impl Pearson {
+    pub fn new(n:usize) -> Self {
+
+        Self {
+            n,
+            degrees_of_freedom:(n - 2) as f64,
+        }
+    }
+}
+
+impl Spearman {
     pub fn new(n:usize) -> Self {
 
         Self {
@@ -71,4 +82,48 @@ impl Correlation for Spearman {
  
         return (rho,p_val);
     }
+}
+
+
+#[cfg(test)]
+
+mod test{
+    use assert_approx_eq::assert_approx_eq;
+    use super::*; 
+
+
+
+    #[test]
+    fn test_pearson_obj(){
+        let new_pearson = Pearson::new(5);
+        assert_eq!(new_pearson,Pearson{n:5, degrees_of_freedom:3.0});
+    }
+    #[test]
+    fn test_pearson_correlation(){
+        let new_pearson = Pearson::new(3);
+        let (corr_coeff,p_val) = new_pearson.correlate(&[1.,2.,3.,4.,5.] ,&[1.,2.,3.,4.,5.]);
+
+        assert_eq!(format!("{:.2}", corr_coeff),"1.00");
+        assert_approx_eq!(p_val,1.341575855,2f64);
+    }
+
+    #[test]
+    fn test_spearman_obj(){
+        let new_spearman = Spearman::new(5);
+
+        assert_eq!(new_spearman,Spearman{n:5, degrees_of_freedom:3.0});
+
+    }
+    #[test]
+    fn test_spearman_correlation(){
+        let new_spearman = Spearman::new(5);
+
+        let (s_rho,p_val) = new_spearman.correlate(&[1.,2.,3.,4.,5.], &[5.,6.,7.,8.,7.]);
+
+
+        assert_approx_eq!(s_rho,0.079603960396039,2f64);
+        assert_approx_eq!(p_val,0.43111687,2f64)
+
+    }
+
 }
