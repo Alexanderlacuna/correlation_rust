@@ -1,9 +1,15 @@
+pub mod reader;
 use rgsl::{
     randist::t_distribution::{tdist_P, tdist_Q},
     statistics::{correlation, spearman},
 };
-
 use assert_approx_eq::assert_approx_eq;
+
+use reader::{
+    file_reader,
+    add_numbers_2
+};
+
 
 trait Correlation {
     fn correlate(&self,x:&[f64],y:&[f64]) ->(f64,f64);
@@ -77,6 +83,11 @@ impl Correlation for Spearman {
 
     fn correlate(&self,x:&[f64],y:&[f64]) -> (f64,f64){
 
+        match  x.len() == y.len() {
+            true => println!("success"),
+            false => panic!("array should be of the same size")
+        };
+
         //dditional workspace of size 2*n is required in work
         let mut vec = Vec::with_capacity(2 * self.n);
         let workspace: &mut [f64] = vec.as_mut_slice();
@@ -95,6 +106,8 @@ impl Correlation for Spearman {
 
 #[cfg(test)]
 mod tests {
+    use crate::reader::add_numbers_2;
+
     use super::*;
     #[test]
     fn test_add_numbers() {
@@ -102,7 +115,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pearson(){
+    fn test_pearson_obj(){
         let new_pearson = Pearson::new(5);
         assert_eq!(new_pearson,Pearson{n:5, degrees_of_freedom:3.0});
     }
@@ -116,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn test_spearman(){
+    fn test_spearman_obj(){
         let new_spearman = Spearman::new(5);
 
         assert_eq!(new_spearman,Spearman{n:5, degrees_of_freedom:3.0});
@@ -133,5 +146,25 @@ mod tests {
         assert_approx_eq!(p_val,0.43111687,2f64)
 
 
+    }
+
+    #[test]
+    fn test_add_2(){
+        assert_eq!(add_numbers_2(4, 5),9)
+    }
+
+    #[test]
+
+    fn test_file_reader_error(){
+        assert!(file_reader("./non_file.txt").is_err());
+    }
+
+
+    #[test]
+
+    fn test_file_reader() {
+      let expected_results = file_reader("./mock_dataset.txt");
+
+      assert!(expected_results.is_ok())
     }
 }
