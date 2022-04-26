@@ -133,17 +133,17 @@ mod test{
 
 
 struct Compute <'a>{
-    x_vals:Vec<f64>,
+    x_vals:&'a [f64],
     dataset_path:&'a str,
     method: CorrelationMethod
 
 }
 
 impl <'a> Compute<'a>{
-    fn new (method:&str,dataset_path:&'a str,x_vals:Vec<f64>) -> Self{
+    fn new (method:&str,dataset_path:&'a str,x_vals:&'a [f64]) -> Self{
 
         Self {
-            x_vals:x_vals,
+            x_vals: x_vals,
             dataset_path:dataset_path,
             method: CorrelationMethod::pearson
         }
@@ -151,7 +151,14 @@ impl <'a> Compute<'a>{
     }
 
     fn compute(){
-        
+
+        //where the magic happens
+        //reading the file ?? should happen in new
+        // compute for each pair()
+
+        //things todo retention sort //
+
+        //work on correlation method enum
     }
 
 }
