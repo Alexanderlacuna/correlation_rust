@@ -1,5 +1,5 @@
-use core::panic;
-use std::io::BufRead;
+
+use crate::reader::BufferReader;
 
 use rgsl::{
     randist::t_distribution::{tdist_P, tdist_Q},
@@ -88,11 +88,101 @@ impl Correlation for Spearman {
 }
 
 
+
+
+#[allow(dead_code)]
+
+#[derive(PartialEq,Debug)]
+struct Compute <'a>{
+    x_vals:&'a [f64],
+    dataset_path:&'a str,
+    method: CorrelationMethod
+
+}
+#[allow(dead_code)]
+impl <'a> Compute<'a>{
+    fn new (method:&str,dataset_path:&'a str,x_vals:&'a [f64]) -> Self{
+        //capitalize method/same cases
+
+        let method = match method {
+            "pearson" => CorrelationMethod::Pearson,
+            "spearman" => CorrelationMethod::Spearman,
+            _ => panic!("method cannot be found")
+        };
+
+        Self {
+            x_vals: x_vals,
+            dataset_path:dataset_path,
+            method: method
+        }
+
+    }
+
+    fn compute(&self) -> Vec<(f64,f64)>{
+
+        //read from file);
+
+        let mut corr_results:Vec<(f64,f64)> = Vec::new();
+        let  reader = BufferReader::new(self.dataset_path);
+
+        match reader {
+            Ok(mut buffer_read) => {
+
+                let mut n_string = String::new();
+
+                while let Some(val) = buffer_read.read_line(& mut n_string){
+                    if let Ok(array_new_val) = val {
+                        let new_array=  array_new_val
+                        .split(",")
+                        .map(|s| s.trim().parse::<f64>().expect("parse error"))
+                        .collect::<Vec<f64>>();
+
+                        let pearson = Pearson::new(new_array.len());
+                        let results = pearson.correlate(&[1.2,1.1,1.3,1.6,1.8],&[1.2,1.1,1.3,1.6,1.8]);
+                        corr_results.push(results);
+
+
+                    }
+
+                }
+
+            
+
+            }
+
+            Err(err) =>panic!("an error ocurrexxxxxxxxxxxxxxd {:?}",err)
+        }
+
+        
+
+        corr_results
+
+        //where the magic happens
+        //reading the file ?? should happen in new
+        // compute for each pair()
+
+        //things todo retention sort //
+
+        //work on correlation method enum
+    }
+
+}
+#[derive(PartialEq,Debug)]
+enum CorrelationMethod {
+    Pearson,
+    Spearman
+}
+
+
+
+
 #[cfg(test)]
 
 mod test{
+
+    use super::*;
     use assert_approx_eq::assert_approx_eq;
-    use super::*; 
+  
 
 
 
@@ -129,106 +219,6 @@ mod test{
 
     }
 
-}
-
-
-//structure we need file for y vals,x_val ,correlation method to use
-
-
-
-#[allow(dead_code)]
-
-#[derive(PartialEq,Debug)]
-struct Compute <'a>{
-    x_vals:&'a [f64],
-    dataset_path:&'a str,
-    method: CorrelationMethod
-
-}
-#[allow(dead_code)]
-impl <'a> Compute<'a>{
-    fn new (method:&str,dataset_path:&'a str,x_vals:&'a [f64]) -> Self{
-        //capitalize method/same cases
-
-        let method = match method {
-            "pearson" => CorrelationMethod::Pearson,
-            "spearman" => CorrelationMethod::Spearman,
-            _ => panic!("method cannot be found")
-        };
-
-        Self {
-            x_vals: x_vals,
-            dataset_path:dataset_path,
-            method: method
-        }
-
-    }
-
-    fn compute(&self) -> Vec<f64>{
-
-        //read from file);
-        use crate::reader::BufferReader;
-        use crate::correlations::Correlation;
-
-        let mut corr_results:Vec<(f64,f64)> = Vec::new();
-        let  reader = BufferReader::new(self.dataset_path);
-
-        match reader {
-            Ok(mut buffer_read) => {
-
-                let mut n_string = String::new();
-
-                while let Some(val) = buffer_read.read_line(& mut n_string){
-                    if let Ok(array_new_val) = val {
-                        let new_array=  array_new_val
-                        .split_whitespace()
-                        .map(|s| s.parse().expect("parse error"))
-                        .collect::<Vec<f64>>();
-
-                        let pearson = Pearson::new(new_array.len());
-                        let results = pearson.correlate(&[1.2,1.1,1.3,1.6,1.8],&[1.2,1.1,1.3,1.6,1.8]);
-                        corr_results.push(results)
-
-
-                    }
-
-                }
-
-            
-
-            }
-
-            Err(_) =>panic!("an error ocurred")
-        }
-
-        
-
-        todo!()
-
-        //where the magic happens
-        //reading the file ?? should happen in new
-        // compute for each pair()
-
-        //things todo retention sort //
-
-        //work on correlation method enum
-    }
-
-}
-#[derive(PartialEq,Debug)]
-enum CorrelationMethod {
-    Pearson,
-    Spearman
-}
-
-
-
-#[cfg(test)]
-
-mod tests {
-
-
-    use super::*;
     #[test]
     fn test_compute_obj(){
        let x_vals  = [1.,3.,4.,5.,6.,7.,7.];
@@ -262,11 +252,32 @@ mod tests {
 
     #[test]
     fn test_compute(){
-        let compute_obj = Compute::new("pearson","/home/kabui/correlation_rust/mock_dataset.txt",&[4. ,5. ,1. ,1. ,6. ,1. ,8. ,7.
+        let compute_obj = Compute::new("pearson","/home/kabui/correlation_rust/src/mock_dataset.txt",&[4. ,5. ,1. ,1. ,6. ,1. ,8. ,7.
         ]);
 
         let corr_results = compute_obj.compute();
 
-        assert_eq!(corr_results,[])
+        assert_eq!(corr_results,[(0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0)])
+    }
+
+    #[test]
+
+    fn test_parse_f64(){
+        let   data = "9. ,5. ,0. ,7. ,6. ,1. ,5. ,0.\n";
+
+        let expected_results = vec![9.,5.,0.,7.,6.,1.,5.,0.];
+        
+
+        let results:Vec<f64>= data
+        .split(",")
+        .map(|f_str|f_str.trim().parse::<f64>().expect("parse failed"))
+        .collect();
+
+        assert_eq!(results,expected_results)        
+        
     }
 }
+
+
+
+
