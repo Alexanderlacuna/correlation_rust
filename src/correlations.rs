@@ -1,3 +1,6 @@
+use core::panic;
+use std::io::BufRead;
+
 use rgsl::{
     randist::t_distribution::{tdist_P, tdist_Q},
     statistics::{correlation, spearman},
@@ -161,7 +164,44 @@ impl <'a> Compute<'a>{
 
     }
 
-    fn compute(){
+    fn compute(&self) -> Vec<f64>{
+
+        //read from file);
+        use crate::reader::BufferReader;
+        use crate::correlations::Correlation;
+
+        let mut corr_results:Vec<(f64,f64)> = Vec::new();
+        let  reader = BufferReader::new(self.dataset_path);
+
+        match reader {
+            Ok(mut buffer_read) => {
+
+                let mut n_string = String::new();
+
+                while let Some(val) = buffer_read.read_line(& mut n_string){
+                    if let Ok(array_new_val) = val {
+                        let new_array=  array_new_val
+                        .split_whitespace()
+                        .map(|s| s.parse().expect("parse error"))
+                        .collect::<Vec<f64>>();
+
+                        let pearson = Pearson::new(new_array.len());
+                        let results = pearson.correlate(&[1.2,1.1,1.3,1.6,1.8],&[1.2,1.1,1.3,1.6,1.8]);
+                        corr_results.push(results)
+
+
+                    }
+
+                }
+
+            
+
+            }
+
+            Err(_) =>panic!("an error ocurred")
+        }
+
+        
 
         todo!()
 
@@ -218,5 +258,15 @@ mod tests {
             dataset_path:"/notes.txt",
             method:CorrelationMethod::Pearson
         })
+    }
+
+    #[test]
+    fn test_compute(){
+        let compute_obj = Compute::new("pearson","/home/kabui/correlation_rust/mock_dataset.txt",&[4. ,5. ,1. ,1. ,6. ,1. ,8. ,7.
+        ]);
+
+        let corr_results = compute_obj.compute();
+
+        assert_eq!(corr_results,[])
     }
 }
