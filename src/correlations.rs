@@ -1,6 +1,5 @@
 
 use crate::reader::BufferReader;
-
 use rgsl::{
     randist::t_distribution::{tdist_P, tdist_Q},
     statistics::{correlation, spearman},
@@ -126,19 +125,27 @@ impl <'a> Compute<'a>{
         let  reader = BufferReader::new(self.dataset_path);
 
         match reader {
+
+    
             Ok(mut buffer_read) => {
 
                 let mut n_string = String::new();
 
                 while let Some(val) = buffer_read.read_line(& mut n_string){
                     if let Ok(array_new_val) = val {
-                        let new_array=  array_new_val
+
+                        let x_vals = [9.,5.,0.,7.,6.,1.,5.,0.];
+
+        
+                        let new_array:[f64;8]=  array_new_val
                         .split(",")
                         .map(|s| s.trim().parse::<f64>().expect("parse error"))
-                        .collect::<Vec<f64>>();
+                        .collect::<Vec<f64>>().try_into().unwrap_or_else(|_v|panic!("Expected vla"));
+        
 
-                        let pearson = Pearson::new(new_array.len());
-                        let results = pearson.correlate(&[1.2,1.1,1.3,1.6,1.8],&[1.2,1.1,1.3,1.6,1.8]);
+                        let pearson = Pearson::new(5);
+                        let results = pearson.correlate(&x_vals,&new_array);
+
                         corr_results.push(results);
 
 
@@ -155,15 +162,9 @@ impl <'a> Compute<'a>{
 
         
 
-        corr_results
-
-        //where the magic happens
-        //reading the file ?? should happen in new
-        // compute for each pair()
+        return  corr_results;
 
         //things todo retention sort //
-
-        //work on correlation method enum
     }
 
 }
@@ -252,12 +253,17 @@ mod test{
 
     #[test]
     fn test_compute(){
-        let compute_obj = Compute::new("pearson","/home/kabui/correlation_rust/src/mock_dataset.txt",&[4. ,5. ,1. ,1. ,6. ,1. ,8. ,7.
+        let compute_obj = Compute::new("pearson","/home/kabui/correlation_rust/src/mock_dataset.txt",&[12. ,15. ,11. ,11. ,16. ,11. ,8. ,7.
         ]);
 
         let corr_results = compute_obj.compute();
 
-        assert_eq!(corr_results,[(0.0, 1.0), (0.0, 1.0), (0.0, 1.0), (0.0, 1.0)])
+       let expected_results = [(1.0, 0.0), (-0.2550, 0.6787), (-0.2168, 0.7260), (0.3941, 0.5115)];
+
+
+
+
+        assert_eq!(corr_results,expected_results)
     }
 
     #[test]
