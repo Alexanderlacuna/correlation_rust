@@ -258,12 +258,16 @@ mod test{
 
         let corr_results = compute_obj.compute();
 
-       let expected_results = [(1.0, 0.0), (-0.2550, 0.6787), (-0.2168, 0.7260), (0.3941, 0.5115)];
+       let expected_results = vec![(1.0, 0.0), (-0.2550, 0.6787), (-0.2168, 0.7260), (0.3941, 0.5115)];
 
+       for (index,(rho,pval))  in corr_results.iter().enumerate(){
+           let (exp_corr,exp_pval) = &(expected_results[index]);
 
+           assert_approx_eq!(rho,exp_corr,2f64);
+           assert_approx_eq!(pval,exp_pval,2f64);
+        
+       }
 
-
-        assert_eq!(corr_results,expected_results)
     }
 
     #[test]
