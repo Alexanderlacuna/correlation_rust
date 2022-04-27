@@ -132,25 +132,38 @@ mod test{
 //structure we need file for y vals,x_val ,correlation method to use
 
 
+
+#[allow(dead_code)]
+
+#[derive(PartialEq,Debug)]
 struct Compute <'a>{
     x_vals:&'a [f64],
     dataset_path:&'a str,
     method: CorrelationMethod
 
 }
-
+#[allow(dead_code)]
 impl <'a> Compute<'a>{
     fn new (method:&str,dataset_path:&'a str,x_vals:&'a [f64]) -> Self{
+        //capitalize method/same cases
+
+        let method = match method {
+            "pearson" => CorrelationMethod::Pearson,
+            "spearman" => CorrelationMethod::Spearman,
+            _ => panic!("method cannot be found")
+        };
 
         Self {
             x_vals: x_vals,
             dataset_path:dataset_path,
-            method: CorrelationMethod::pearson
+            method: method
         }
 
     }
 
     fn compute(){
+
+        todo!()
 
         //where the magic happens
         //reading the file ?? should happen in new
@@ -162,8 +175,48 @@ impl <'a> Compute<'a>{
     }
 
 }
-
+#[derive(PartialEq,Debug)]
 enum CorrelationMethod {
-    pearson,
-    spearman
+    Pearson,
+    Spearman
+}
+
+
+
+#[cfg(test)]
+
+mod tests {
+
+
+    use super::*;
+    #[test]
+    fn test_compute_obj(){
+       let x_vals  = [1.,3.,4.,5.,6.,7.,7.];
+       let new_compute = [Compute::new("spearman", "./notes.txt", &x_vals), Compute::new("pearson", "./note2.txt", &x_vals)];
+
+
+       assert_eq!([Compute {
+        x_vals:&[1.,3.,4.,5.,6.,7.,7.],
+        dataset_path:"./notes.txt",
+        method:CorrelationMethod::Spearman
+    },Compute {
+        x_vals:&[1.,3.,4.,5.,6.,7.,7.],
+        dataset_path:"./note2.txt",
+        method:CorrelationMethod::Pearson
+    }],new_compute)
+
+
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_compute_panics(){
+
+        let new_compute = Compute::new("unknown","/notes.txt",&[1.2,1.4,1.5]);
+        assert_eq!(new_compute,Compute{
+            x_vals:&[1.2,1.4,1.5],
+            dataset_path:"/notes.txt",
+            method:CorrelationMethod::Pearson
+        })
+    }
 }
