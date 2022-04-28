@@ -1,5 +1,12 @@
 
 use crate::reader::BufferReader;
+
+
+use std::env;
+
+
+
+//way to parse the args
 use rgsl::{
     randist::t_distribution::{tdist_P, tdist_Q},
     statistics::{correlation, spearman},
@@ -87,20 +94,19 @@ impl Correlation for Spearman {
 }
 
 
-
-
 #[allow(dead_code)]
 
 #[derive(PartialEq,Debug)]
 struct Compute <'a>{
     x_vals:&'a [f64],
     dataset_path:&'a str,
-    method: CorrelationMethod
+    method: CorrelationMethod,
+    file_delimiter:char
 
 }
 #[allow(dead_code)]
 impl <'a> Compute<'a>{
-    fn new (method:&str,dataset_path:&'a str,x_vals:&'a [f64]) -> Self{
+    fn new (file_delimeter:char,method:&str,dataset_path:&'a str,x_vals:&'a [f64]) -> Self{
         //capitalize method/same cases
 
         let method = match method {
@@ -112,7 +118,8 @@ impl <'a> Compute<'a>{
         Self {
             x_vals: x_vals,
             dataset_path:dataset_path,
-            method: method
+            method: method,
+            file_delimiter: file_delimeter
         }
 
     }
@@ -134,10 +141,12 @@ impl <'a> Compute<'a>{
                 while let Some(val) = buffer_read.read_line(& mut n_string){
                     if let Ok(array_new_val) = val {
 
-                        let x_vals = [9.,5.,0.,7.,6.,1.,5.,0.];
+                        //issue here 
+
+                        let x_vals = [9.,5.,0.,7.,6.,1.,5.,0.,1.,5.,4.,2.,11.,15.,17.,21.];
 
         
-                        let new_array:[f64;8]=  array_new_val
+                        let new_array:[f64;16]=  array_new_val
                         .split(",")
                         .map(|s| s.trim().parse::<f64>().expect("parse error"))
                         .collect::<Vec<f64>>().try_into().unwrap_or_else(|_v|panic!("Expected vla"));
@@ -223,14 +232,16 @@ mod test{
     #[test]
     fn test_compute_obj(){
        let x_vals  = [1.,3.,4.,5.,6.,7.,7.];
-       let new_compute = [Compute::new("spearman", "./notes.txt", &x_vals), Compute::new("pearson", "./note2.txt", &x_vals)];
+       let new_compute = [Compute::new(',',"spearman", "./notes.txt", &x_vals), Compute::new(',',"pearson", "./note2.txt", &x_vals)];
 
 
        assert_eq!([Compute {
+        file_delimiter:',',
         x_vals:&[1.,3.,4.,5.,6.,7.,7.],
         dataset_path:"./notes.txt",
         method:CorrelationMethod::Spearman
     },Compute {
+        file_delimiter:',',
         x_vals:&[1.,3.,4.,5.,6.,7.,7.],
         dataset_path:"./note2.txt",
         method:CorrelationMethod::Pearson
@@ -243,8 +254,9 @@ mod test{
     #[should_panic]
     fn test_compute_panics(){
 
-        let new_compute = Compute::new("unknown","/notes.txt",&[1.2,1.4,1.5]);
+        let new_compute = Compute::new(',',"unknown","/notes.txt",&[1.2,1.4,1.5]);
         assert_eq!(new_compute,Compute{
+            file_delimiter:',',
             x_vals:&[1.2,1.4,1.5],
             dataset_path:"/notes.txt",
             method:CorrelationMethod::Pearson
@@ -253,7 +265,7 @@ mod test{
 
     #[test]
     fn test_compute(){
-        let compute_obj = Compute::new("pearson","/home/kabui/correlation_rust/src/mock_dataset.txt",&[12. ,15. ,11. ,11. ,16. ,11. ,8. ,7.
+        let compute_obj = Compute::new(',',"pearson","/home/kabui/correlation_rust/src/mock_dataset.txt",&[12. ,15. ,11. ,11. ,16. ,11. ,8. ,7.
         ]);
 
         let corr_results = compute_obj.compute();
@@ -275,6 +287,8 @@ mod test{
     fn test_parse_f64(){
         let   data = "9. ,5. ,0. ,7. ,6. ,1. ,5. ,0.\n";
 
+        let y = "25.08439 ,72.02225 ,47.56293 ,22.87893 ,14.28721 ,71.84655 ,87.81991 ,84.86824 ,6.72478 ,5.72373 ,73.47078 ,63.74703";
+
         let expected_results = vec![9.,5.,0.,7.,6.,1.,5.,0.];
         
 
@@ -283,7 +297,27 @@ mod test{
         .map(|f_str|f_str.trim().parse::<f64>().expect("parse failed"))
         .collect();
 
-        assert_eq!(results,expected_results)        
+        let u:Vec<f64> = y
+        .split(",")
+        .map(|f_str|f_str.trim().parse::<f64>().expect("parse failed"))
+        .collect();
+
+        assert_eq!(results,expected_results); 
+        assert_eq!(u,vec! [25.08439 ,72.02225 ,47.56293 ,22.87893 ,14.28721 ,71.84655 ,87.81991 ,84.86824 ,6.72478 ,5.72373 ,73.47078 ,63.74703])       
+        
+    }
+
+   #[test]
+
+    fn test_huge_dataset(){
+        let x_vals = [25.08439 ,72.02225 ,47.56293 ,22.87893 ,14.28721 ,71.84655 ,87.81991 ,84.86824 ,6.72478 ,5.72373 ,73.47078 ,63.74703];
+
+        
+
+        let compute_obj = Compute::new(',',"pearson","/home/kabui/correlation_rust/src/db300.txt",&x_vals);
+
+
+        assert_eq!(vec![(1.2,1.5)],compute_obj.compute())
         
     }
 }
