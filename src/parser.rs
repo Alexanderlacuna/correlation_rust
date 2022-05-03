@@ -38,16 +38,20 @@ mod tests{
 
     fn test_parsing_rows(){
 
-        //use a large test case 
+        //todo add test cases
+
+        
         let x_vals = [12.2,12.1,16.5,11.1];
-        let y_vals   = ["12.1","11.1","11.6","11.7"];
+        let pure_string   = ["12.1","11.1","11.6","11.7"];
 
-        let h = ["","1.2","11.1","","4.5","nan"];
+        let string_with_nans = ["","1.2","11.1","","4.5","nan"];
 
-        assert_eq!(parse_rows(&x_vals,&y_vals),
+        
+
+        assert_eq!(parse_rows(&x_vals,&pure_string),
         (vec![12.2,12.1,16.5,11.1],vec![12.1,11.1,11.6,11.7]));
 
-        assert_eq!(parse_rows(&x_vals, &h),(vec![12.1,16.5],vec![1.2,11.1]));
+        assert_eq!(parse_rows(&x_vals, &string_with_nans),(vec![12.1,16.5],vec![1.2,11.1]));
     }
 }
 
