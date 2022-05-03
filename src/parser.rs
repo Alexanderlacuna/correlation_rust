@@ -1,5 +1,5 @@
 
-fn parse_rows (x_vals:&[f64],y_vals:&[&str]) -> (Vec<f64>,Vec<f64>){
+pub fn parse_rows (x_vals:&[f64],y_vals:&[&str]) -> (Vec<f64>,Vec<f64>){
     //pointer
 
     let mut  parsed_x_vals= Vec::new();

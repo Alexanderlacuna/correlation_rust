@@ -1,9 +1,8 @@
 
 use crate::reader::BufferReader;
-
+use crate::parser::parse_rows;
 
 use std::env;
-
 
 
 //way to parse the args
@@ -109,7 +108,7 @@ impl <'a> Compute<'a>{
     fn new (file_delimeter:char,method:&str,dataset_path:&'a str,x_vals:&'a [f64]) -> Self{
         //capitalize method/same cases
 
-        let method = match method {
+        let method = match method.to_lowercase().as_str() {
             "pearson" => CorrelationMethod::Pearson,
             "spearman" => CorrelationMethod::Spearman,
             _ => panic!("method cannot be found")
@@ -141,28 +140,21 @@ impl <'a> Compute<'a>{
                 while let Some(val) = buffer_read.read_line(& mut n_string){
                     if let Ok(array_new_val) = val {
 
-                        //issue here 
+    
+                        let (parsed_x_val,parsed_y_val) = parse_rows(self.x_vals,&array_new_val
+                    
+                            .split(self.file_delimiter)
+                            .collect::<Vec<&str>>());
 
-                        let x_vals = [9.,5.,0.,7.,6.,1.,5.,0.,1.,5.,4.,2.,11.,15.,17.,21.];
-
-        
-                        let new_array:[f64;16]=  array_new_val
-                        .split(",")
-                        .map(|s| s.trim().parse::<f64>().expect("parse error"))
-                        .collect::<Vec<f64>>().try_into().unwrap_or_else(|_v|panic!("Expected vla"));
-        
-
-                        let pearson = Pearson::new(5);
-                        let results = pearson.correlate(&x_vals,&new_array);
+                        let results =  Pearson::new(parsed_x_val.len())
+                        .correlate(&parsed_x_val,&parsed_y_val);
 
                         corr_results.push(results);
 
 
                     }
 
-                }
-
-            
+                }    
 
             }
 
@@ -311,10 +303,9 @@ mod test{
 
     fn test_huge_dataset(){
         let x_vals = [25.08439 ,72.02225 ,47.56293 ,22.87893 ,14.28721 ,71.84655 ,87.81991 ,84.86824 ,6.72478 ,5.72373 ,73.47078 ,63.74703];
-
         
 
-        let compute_obj = Compute::new(',',"pearson","/home/kabui/correlation_rust/src/db300.txt",&x_vals);
+        let compute_obj = Compute::new(',',"pearson","/home/kabui/correlation_rust/src/matrix_80.txt",&x_vals);
 
 
         assert_eq!(vec![(1.2,1.5)],compute_obj.compute())

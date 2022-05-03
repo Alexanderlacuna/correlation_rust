@@ -40,55 +40,6 @@ impl BufferReader{
         }).transpose()
 }
 
-    pub fn fetch_keys <'a>(&self,row:& 'a str) -> (&str,[&str]){
-
-
-        // parse the line and return (trait_name and trait_values)
-
-        //parse the other  body to float type
-
-        let mut buf = String::new();
-       // should be taken to  own  line
-
-
-        let sample_buffer =  self.read_line(&mut buf);
-
-        let sample_names = match sample_buffer{
-
-            Some(val)=> {
-                if let Ok(new_vak) = val{
-
-                    new_vak
-
-                }
-
-                else {
-                    panic!("error happened");
-                }
-            },
-
-            None =>  panic!("no sample values found")
-
-        };
-
- 
-    
-
-        let string_vec : Vec<&str>= row.split(",").collect();
-
-        //issue is that spaces are included
-
-        return [string_vec[0],string_vec[1..]];
-    }  
-pub fn row_parser <'a>(&self,row :&'a mut String) ->(& 'a str,Vec<&'a str>){
-
-    let parsed_row:Vec<&str> = row.split(",").map(|s|s.trim()).collect();
-
-    let (trait_name,trait_vals) =  (parsed_row[0],parsed_row[1..].to_vec());
-
-    (parsed_row[0],parsed_row[1..].to_vec())
-
-}     
 }
 
 
