@@ -1,4 +1,4 @@
-use core::panic;
+
 //file reads dataset file and also does the parsing
 //aim is to read this as a stream
 use std::fs::File;
