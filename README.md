@@ -50,3 +50,17 @@ Correlation::new(
 
 
 ```
+
+
+### Performance
+
+performance comparison with python
+
+
+- this was conducted using same dataset and 16 column matrix
+|_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ __ _ _                     speed in seconds
+                     
+
+| number of rows     | python | rust
+| ----------- | ----------- |
+| 300000      |  56.98s          | 10.51s
