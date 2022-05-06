@@ -19,14 +19,15 @@ accepts a dataset as text file
 
 ``` rust 
 
-Correlation.compute(
+
+
+Correlation::new(
       dataset_path:&str, // path to dataset file containing y_vals
       file_delimiter: char //example (,| ," ")
       x_vals : &[f64] //contains the primary values
       method: &str , // either pearson or spearman
 
-
-)
+).compute()
 
 
 
