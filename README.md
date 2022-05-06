@@ -54,8 +54,8 @@ Correlation::new(
 
 ### Performance
 
-performance comparison with python
-
+performance comparison with python scipy stats
+ 
 
 - this was conducted using same dataset and 16 column matrix
 |_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ __ _ _                     speed in seconds
