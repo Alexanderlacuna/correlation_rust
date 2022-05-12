@@ -1,4 +1,8 @@
+use std::mem::take;
+
 use crate::parser::parse_rows;
+
+use crate::parser::parse_rows_with_names;
 use crate::reader::BufferReader;
 
 //way to parse the args
@@ -113,6 +117,13 @@ impl<'a> Compute<'a> {
         }
     }
 
+    pub fn sorter(results:&mut Vec<(f64,f64)>){
+
+      //naive sorter
+      let sorted_results = results.sort_by(|a,b|b.1.partial_cmp(&a.1).unwrap());
+
+    }
+
     pub fn compute(&self) -> Vec<(f64, f64)> {
         //read from file);
 
@@ -123,14 +134,42 @@ impl<'a> Compute<'a> {
             Ok(mut buffer_read) => {
                 let mut n_string = String::new();
 
+                //assumption made is that first row doesn't contain an empty value
+
+                let column_names = match buffer_read.read_line(& mut n_string){
+                    Some(row) => {
+                       row.unwrap().split(self.file_delimiter).collect::<Vec<&str>>()
+
+            
+
+                    }
+
+                    None => {
+                        //no content in file
+
+                        panic!("expected a row")
+
+                    }
+                };
+
+
+
                 while let Some(val) = buffer_read.read_line(&mut n_string) {
                     if let Ok(array_new_val) = val {
-                        let (parsed_x_val, parsed_y_val) = parse_rows(
-                            self.x_vals,
-                            &array_new_val
-                                .split(self.file_delimiter)
-                                .collect::<Vec<&str>>(),
-                        );
+
+                        //let (parsed_x_val, parsed_y_val) = parse_rows(
+                        //    self.x_vals,
+                        //    &array_new_val
+                        //        .split(self.file_delimiter)
+                        //        .collect::<Vec<&str>>(),
+                        //);
+
+                        let ty =parse_rows_with_names(self.x_vals,&array_new_val
+                            .split(self.file_delimiter)
+                            .collect::<Vec<&str>>());
+
+                        let (key_name,parsed_x_val,parsed_y_val) = (ty.row_name,ty.x_vals,ty.y_vals);
+                        
 
                         if self.method == CorrelationMethod::Pearson {
                             corr_results.push(
@@ -325,6 +364,21 @@ mod test {
             &x_vals,
         );
 
-        assert_eq!(vec![(1.2, 1.5)], compute_obj.compute())
+        //assert_eq!(vec![(1.2, 1.5)], compute_obj.compute())
+    }
+
+    #[test]
+    fn test_sorter() {
+        let mut a = vec![(1.2,1.0),(1.3,0.5),(1.3,7.)];
+        Compute::sorter(& mut a);
+
+        let mut  f = vec![(1.2,11.1),(1.1,9.7),(11.1,7.8),(9.3,11.1),(1.3, 7.0), (1.2, 1.0), (1.3, 0.5)];
+        Compute::sorter(& mut f);    
+
+
+        assert_eq!(a,vec![(1.3, 7.0), (1.2, 1.0), (1.3, 0.5)]);
+        assert_eq!(f,vec![(1.2, 11.1), (9.3, 11.1), (1.1, 9.7), (11.1, 7.8), (1.3, 7.0), (1.2, 1.0), (1.3, 0.5)]);
+
+        
     }
 }
