@@ -4,9 +4,9 @@
 
 #[derive(PartialEq, Debug)]
 pub struct CorrelationEvaluateRow {
-    row_name:String,
-    x_vals: Vec<f64>,
-    y_vals: Vec<f64>
+    pub row_name:String,
+    pub x_vals: Vec<f64>,
+    pub y_vals: Vec<f64>
 }
 
 impl  CorrelationEvaluateRow {
@@ -34,6 +34,9 @@ pub fn parse_rows_with_names (x_vals:& [f64],y_vals:&[&str])->CorrelationEvaluat
 
 
     let results = parse_rows(x_vals,&string_floats);
+
+
+   
 
     return CorrelationEvaluateRow {
         row_name,
