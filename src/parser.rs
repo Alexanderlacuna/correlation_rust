@@ -1,5 +1,40 @@
+use std::fs::File;
+use std::io::Read;
+use serde::Deserialize;
+#[derive(Debug, Deserialize,PartialEq)]
+//#[serde(rename_all = "PascalCase")]
+
+pub struct JsonData {
+    file_path:String,
+    x_vals: String,
+    sample_values:String,
+
+}
 
 
+impl JsonData {
+    fn new(json_file_path:&str) -> JsonData{
+
+
+    let mut  file = std::fs::File::open(json_file_path).unwrap();
+    let mut buff = String::new();
+    file.read_to_string(&mut buff).unwrap();
+
+
+    let results  = match serde_json::from_str(&buff){
+        Ok(val) => val,
+        Err(error) => panic!("json file not well formatted {:?}",error)
+    };
+
+    results
+
+
+
+
+    }         
+
+         
+}
 
 
 #[derive(PartialEq, Debug)]
@@ -138,6 +173,16 @@ mod tests{
             assert_eq!(parse_rows_with_names(&x_vals, &*test_case),expected_results[index])
 
         }
+    }
+
+
+    #[test]
+    fn test_json_file_read(){
+        let json_struct = JsonData::new("/home/kabui/correlation_rust/src/sample_json_file.json");
+
+        let k = JsonData { file_path: String::from("/home/kabui/correlation_rust/src/matrix80.txt"), x_vals: String::from("25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703"), sample_values: String::from("bxd1") };
+
+        assert_eq!(k,json_struct)
     }
 }
 
