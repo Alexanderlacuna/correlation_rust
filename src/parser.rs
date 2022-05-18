@@ -5,15 +5,15 @@ use serde::Deserialize;
 //#[serde(rename_all = "PascalCase")]
 
 pub struct JsonData {
-    file_path:String,
-    x_vals: String,
-    sample_values:String,
+    pub file_path:String,
+    pub x_vals: String,
+    pub sample_values:String,
 
 }
 
 
 impl JsonData {
-    fn new(json_file_path:&str) -> JsonData{
+    pub fn new(json_file_path:&str) -> JsonData{
 
 
     let mut  file = std::fs::File::open(json_file_path).unwrap();
