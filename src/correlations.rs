@@ -117,6 +117,23 @@ impl<'a> Compute<'a> {
         }
     }
 
+
+
+    pub fn  filter_top(result:Vec<(f64,f64)>,n:Option<usize>) -> Vec<(f64,f64)>{
+
+        match  n{Some(n_top) => {
+            
+            result
+        }
+
+        None => 
+        {
+        result
+
+        }
+    }
+    }
+
     pub fn sorter(results:&mut Vec<(f64,f64)>){
 
       //naive sorter
@@ -360,11 +377,19 @@ mod test {
         let compute_obj = Compute::new(
             ',',
             "pearson",
+            "/home/kabui/correlation_rust/src/matrix_80.txt",
+            &x_vals,
+        );
+
+        let computation2  = Compute::new(
+            ',',
+            "pearson",
             "/home/kabui/correlation_rust/src/db300.txt",
             &x_vals,
         );
 
-        //assert_eq!(vec![(1.2, 1.5)], compute_obj.compute())
+        assert_eq!(vec![(1.2, 1.5)], compute_obj.compute());
+        assert_eq!(vec![(1.2,1.5)],computation2.compute());
     }
 
     #[test]
@@ -380,5 +405,19 @@ mod test {
         assert_eq!(f,vec![(1.2, 11.1), (9.3, 11.1), (1.1, 9.7), (11.1, 7.8), (1.3, 7.0), (1.2, 1.0), (1.3, 0.5)]);
 
         
+    }
+
+    #[test]
+    fn test_n_top(){
+
+        let mut a1 = vec![(1.2,1.0),(1.3,0.5),(1.3,7.)];
+
+        let new_vec  = Compute::filter_top(a1, Some(2));
+
+        assert_eq!(new_vec,vec![(1.2,1.0),(1.3,0.5)])
+
+
+
+         
     }
 }
