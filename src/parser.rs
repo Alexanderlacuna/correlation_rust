@@ -178,9 +178,9 @@ mod tests{
 
     #[test]
     fn test_json_file_read(){
-        let json_struct = JsonData::new("/home/kabui/correlation_rust/src/sample_json_file.json");
+        let json_struct = JsonData::new("/home/kabui/correlation_rust/tests/data/sample_json_file.json");
 
-        let k = JsonData { file_path: String::from("/home/kabui/correlation_rust/src/matrix80.txt"), x_vals: String::from("25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703"), sample_values: String::from("bxd1") };
+        let k = JsonData { file_path: String::from("/home/kabui/correlation_rust/tests/data/matrix_80.txt"), x_vals: String::from("25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703"), sample_values: String::from("bxd1") };
 
         assert_eq!(k,json_struct)
     }

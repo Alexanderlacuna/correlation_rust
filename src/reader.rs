@@ -71,7 +71,7 @@ mod tests {
     #[test]
 
     fn test_file_reader() {
-      let expected_results = file_reader("/home/kabui/correlation_rust/src/mock_dataset.txt");
+      let expected_results = file_reader("/home/kabui/correlation_rust/tests/data/mock_dataset.txt");
 
       assert!(expected_results.is_ok());
 
@@ -80,7 +80,7 @@ mod tests {
     # [test]
     fn test_file_reader_2(){
     
-        let mut buffer_reader = BufferReader::new("/home/kabui/correlation_rust/src/mock_dataset.txt").unwrap();
+        let mut buffer_reader = BufferReader::new("/home/kabui/correlation_rust/tests/data/mock_dataset.txt").unwrap();
         let mut buf = String::new();
         let  mut data = [
             "9. ,5. ,0. ,7. ,6. ,1. ,5. ,0.\n",
