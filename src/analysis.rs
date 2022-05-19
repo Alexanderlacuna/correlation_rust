@@ -12,8 +12,8 @@ impl Analysis {
         let x_vals:Vec<f64>= json_results.x_vals.split(",").map(|f|f.trim().parse::<f64>().unwrap()).collect();
 
         let computation = correlations::Compute::new(
-            ',',
-            "pearson",
+            json_results.file_delimiter,
+            &json_results.method,
             &json_results.file_path,
     &x_vals
 
