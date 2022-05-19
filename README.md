@@ -17,7 +17,7 @@ cargo build
 
 accepts json file with the following parameters
 example 
-
+expected dataset file example see --> ./tests/data/dataset_with_nans.txt
 ``` json
 
 //example.json
