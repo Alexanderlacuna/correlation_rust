@@ -80,3 +80,23 @@ performance comparison with python scipy stats
 | ----------- | ----------- | ---------|
 | 300000      | 56.98s     |   10.51 s      |
 |Paragraph   | Text         |     |               
+
+
+
+
+
+### Todo
+
+
+- [x] implementation of pearson and spearman correlation
+
+- [x] benchmarks and tests
+
+- [ ] code optimization e.g use of iterators and lazy computation
+
+- [ ] improve on error handling and messages
+
+- [ ] parallel computation
+
+
+
