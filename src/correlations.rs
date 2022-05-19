@@ -141,10 +141,11 @@ impl<'a> Compute<'a> {
 
     }
 
-    pub fn compute(&self) -> Vec<(f64, f64)> {
+    pub fn compute(&self) -> Vec<(String,f64, f64)> {
         //read from file);
 
-        let mut corr_results: Vec<(f64, f64)> = Vec::new();
+        let mut corr_results: Vec<(String,f64, f64)> = Vec::new();
+
         let reader = BufferReader::new(self.dataset_path);
 
         match reader {
@@ -186,18 +187,22 @@ impl<'a> Compute<'a> {
                             .collect::<Vec<&str>>());
 
                         let (key_name,parsed_x_val,parsed_y_val) = (ty.row_name,ty.x_vals,ty.y_vals);
+
+                       
                         
 
                         if self.method == CorrelationMethod::Pearson {
-                            corr_results.push(
-                                Pearson::new(parsed_x_val.len())
-                                    .correlate(&parsed_x_val, &parsed_y_val),
-                            )
+
+                            let (rho,p_val) = Pearson::new(parsed_x_val.len()).correlate(&parsed_x_val, &parsed_y_val);
+                            
+                            corr_results.push((key_name,rho,p_val));
+                   
                         } else {
-                            corr_results.push(
-                                Spearman::new(parsed_x_val.len())
-                                    .correlate(&parsed_x_val, &parsed_y_val),
-                            )
+
+                            let (rho,p_val) = Spearman::new(parsed_x_val.len()).correlate(&parsed_x_val, &parsed_y_val);
+                            
+                            corr_results.push((key_name,rho,p_val));
+    
                         }
                     }
                 }
@@ -327,7 +332,7 @@ mod test {
             (0.3941, 0.5115),
         ];
 
-        for (index, (rho, pval)) in corr_results.iter().enumerate() {
+        for (index, (_key_name, rho, pval)) in corr_results.iter().enumerate() {
             let (exp_corr, exp_pval) = &(expected_results[index]);
 
             assert_approx_eq!(rho, exp_corr, 2f64);

@@ -3,7 +3,7 @@ use crate::parser;
 use crate::correlations;
 pub struct Analysis;
 impl Analysis {
-    pub fn compute(tmp_file:&str) -> std::io::Result<Vec<(f64,f64)>>{
+    pub fn compute(tmp_file:&str) -> std::io::Result<Vec<(String,f64,f64)>>{
 
         let json_results = parser::JsonData::new(tmp_file);
 
