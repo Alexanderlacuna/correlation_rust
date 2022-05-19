@@ -15,24 +15,30 @@ cargo build
 
 ### Run Correlation
 
-accepts a dataset as text file
+accepts json file with the following parameters
+example 
+
+``` json
+
+//example.json
+{
+    "file_path":"/home/kabui/correlation_rust/tests/data/matrix_80.txt", //dataset path
+    "x_vals":"25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703", //x-vals primary values
+    "method":"pearson",  //spearman or pearson
+    "file_delimiter":","  //need to parse file e.g "12| 212| 212|" delimiter=|
+
+}
+
+```
 
 ``` rust 
 
 
-
-Correlation::new(
-      dataset_path:&str, // path to dataset file containing y_vals
-      file_delimiter: char //example (,| ," ")
-      x_vals : &[f64] //contains the primary values
-      method: &str , // either pearson or spearman
-
-).compute()
-
+cargo run example_json
 
 
 ```
-- results are 
+- expected results results are 
 
  ``` rust
    vec![("y_name","rho","pval")]
@@ -51,6 +57,14 @@ Correlation::new(
 
 ```
 
+
+### Benchmark
+
+``` rust
+
+cargo bench
+
+```
 
 ### Performance
 
