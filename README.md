@@ -78,8 +78,8 @@ performance comparison with python scipy stats
 
 | number of rows      | python | rust |
 | ----------- | ----------- | ---------|
-| 300000      | 56.98s     |   10.51 s      |
-|Paragraph   | Text         |     |               
+| 300000      | 38.06s     |   4.37s      |
+|100000   | 13.17s         |    1.36s   |               
 
 
 
