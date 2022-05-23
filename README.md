@@ -34,7 +34,7 @@ expected dataset file example see --> ./tests/data/dataset_with_nans.txt
 ``` rust 
 
 
-cargo run example_json
+cargo run --release example_json
 
 
 ```
