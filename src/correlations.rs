@@ -5,11 +5,18 @@ use crate::parser::parse_rows;
 use crate::parser::parse_rows_with_names;
 use crate::reader::BufferReader;
 
+use std::fs::{remove_file, File};
+use std::io::{prelude::*, BufReader, BufWriter, Lines};
+use std::mem;
+
 //way to parse the args
 use rgsl::{
     randist::t_distribution::{tdist_P, tdist_Q},
     statistics::{correlation, spearman},
 };
+
+const BUFFER_CAPACITY: usize = 4_000_000_000;
+const MAX_MEM_USE: usize = 4_000_000_000;
 
 pub trait Correlation {
     fn correlate(&self, x: &[f64], y: &[f64]) -> (f64, f64);
@@ -141,6 +148,11 @@ impl<'a> Compute<'a> {
 
     }
 
+   
+   pub fn sorter_with_keys(results: &mut Vec<(String,f64,f64)>){
+       let sorted_results = results.sort_by(|a,b|b.2.partial_cmp(&a.2).unwrap());
+   }
+
     pub fn compute(&self) -> Vec<(String,f64, f64)> {
         //read from file);
 
@@ -171,6 +183,9 @@ impl<'a> Compute<'a> {
                 };
 
 
+            //create file from here
+
+
 
                 while let Some(val) = buffer_read.read_line(&mut n_string) {
                     if let Ok(array_new_val) = val {
@@ -196,20 +211,31 @@ impl<'a> Compute<'a> {
                             let (rho,p_val) = Pearson::new(parsed_x_val.len()).correlate(&parsed_x_val, &parsed_y_val);
                             
                             corr_results.push((key_name,rho,p_val));
+
+                            //writeln!(file, "{},{},{}",key_name,rho,p_val);
                    
                         } else {
 
                             let (rho,p_val) = Spearman::new(parsed_x_val.len()).correlate(&parsed_x_val, &parsed_y_val);
                             
                             corr_results.push((key_name,rho,p_val));
+
+                            //writeln!(file, "{},{},{}", key_name,rho,p_val);
     
                         }
                     }
                 }
+
+                
             }
 
             Err(err) => panic!("an error ocurrexxxxxxxxxxxxxxd {:?}", err),
         }
+
+        //naive implementation try extern sorting could save 3 seconds
+
+
+        corr_results.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
 
         return corr_results;
 
@@ -386,7 +412,7 @@ mod test {
             &x_vals,
         );
 
-        //assert_eq!(vec![(1.2, 1.5)], compute_obj.compute());
+        assert_eq!(vec![(String::from("hello"),1.2, 1.5)], compute_obj.compute());
     }
 
     #[test]
