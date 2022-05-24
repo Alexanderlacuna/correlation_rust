@@ -92,7 +92,11 @@ performance comparison with python scipy stats
 
 - [x] benchmarks and tests
 
+
 - [ ] code optimization e.g use of iterators and lazy computation
+
+- [ ] implementation of extern sorter
+
 
 - [ ] improve on error handling and messages
 
