@@ -24,4 +24,4 @@ jobs:
     - name: Clippy check
       run: cargo clippy -- -D warnings
     - name: Run tests
-      run: cargo test --no-default-features --tests --verbose
+      run: cargo test   --verbose
