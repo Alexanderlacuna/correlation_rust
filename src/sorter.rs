@@ -47,12 +47,18 @@ fn ext_sorter (unsorted_vec:Vec<CorrResults>,file_name:&str,n_top:usize)-> std::
 }
 
 
-pub fn write_to_file(filename: String, v: Vec<(String,f64,f64)>) {
+pub fn sort_write_to_file(filename: String, mut v: Vec<(String,f64,f64)>) ->std::io::Result<String>{
+
+   File::create(filename.clone())?;
+
+    v.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
     let mut buffer = BufWriter::with_capacity(BUFFER_CAPACITY, File::create(&filename).unwrap());
     for x in v.iter() {
         writeln!(buffer, "{:?}", x).unwrap();
     }
     buffer.flush().unwrap();
+
+    Ok(String::from("success"))
 }
 
 pub fn create_large_file(filename: &str) {

@@ -3,6 +3,7 @@ use std::mem::take;
 use crate::parser::parse_rows;
 
 use crate::parser::parse_rows_with_names;
+use crate::sorter::sort_write_to_file;
 use crate::reader::BufferReader;
 
 use std::fs::{remove_file, File};
@@ -235,9 +236,11 @@ impl<'a> Compute<'a> {
         //naive implementation try extern sorting could save 3 seconds
 
 
-        corr_results.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
+       // corr_results.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
+       sort_write_to_file(String::from("sorted_results.txt"), corr_results).unwrap();
+       
 
-        return corr_results;
+        return vec![]
 
         //things todo retention sort //
     }
