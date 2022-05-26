@@ -8,13 +8,24 @@ use std::fs::File;
 //struct corr_results
 
 #[derive(Debug, PartialEq, PartialOrd)]
-struct CorrResults {
-    row:String,
-    rho:f64,
-    pval:f64
-}
+struct CorrResults(String,f64,f64);
 
-fn ext_sorter (unsorted_vec:Vec<(String,f64,f64)>,file_name:&str,n_top:usize)-> std::io::Result<String>{
+
+impl  Sortable for  CorrResults {
+
+    fn decode<R: Read>(reader: &mut R) -> Option<Self> {
+
+        todo!()
+    }
+
+    fn encode<W: Write>(&self, writer: &mut W) {
+
+        writer.write_fmt(format_args!("{} {} {}",self.0,self.1,self.2)).unwrap();
+        
+    }
+    
+}
+fn ext_sorter (unsorted_vec:Vec<CorrResults>,file_name:&str,n_top:usize)-> std::io::Result<Vec<CorrResults>>{
     
     File::create(file_name)?;
 
@@ -22,10 +33,11 @@ fn ext_sorter (unsorted_vec:Vec<(String,f64,f64)>,file_name:&str,n_top:usize)-> 
 
     let into_iterator = unsorted_vec.into_iter();
 
-    let sorted = sorter.sort_by(into_iterator, |a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap())?;
+    let sorted = sorter.sort_by(into_iterator, |a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap())?.collect::<Vec<CorrResults>>();
 
-    let mut sorted_data: Vec<(String,f64,f64)> = sorted.collect::<Vec<(String,f64,f64)>>().truncate(n_top);
-    Ok(sorted_data)
+    //sorted.collect::<Vec<CorrResults>>().truncate(n_top);
+
+    Ok(sorted)
 
     //corr_results.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
 
