@@ -15,7 +15,7 @@ assert_approx_eq = "1.1.0"
 serde = { version = "1.0.104", features = ["derive"] }
 serde_json = "1.0.48"
 
-extsort = "0.4.2"
+# extsort = "0.4.2"
 
 [dev-dependencies]
 criterion = "0.3"
