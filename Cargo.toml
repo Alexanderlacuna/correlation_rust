@@ -7,7 +7,8 @@ edition = "2021"
 
 [dependencies]
 
-GSL = "4.0.0"
+
+GSL = "6.0.0"
 
 assert_approx_eq = "1.1.0"
 
