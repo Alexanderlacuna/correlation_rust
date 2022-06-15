@@ -1,22 +1,11 @@
-use std::mem::take;
-
-use crate::parser::parse_rows;
-
 use crate::parser::parse_rows_with_names;
 use crate::reader::BufferReader;
-
-use std::fs::{remove_file, File};
-use std::io::{prelude::*, BufReader, BufWriter, Lines};
-use std::mem;
 
 //way to parse the args
 use rgsl::{
     randist::t_distribution::{tdist_P, tdist_Q},
     statistics::{correlation, spearman},
 };
-
-const BUFFER_CAPACITY: usize = 4_000_000_000;
-const MAX_MEM_USE: usize = 4_000_000_000;
 
 pub trait Correlation {
     fn correlate(&self, x: &[f64], y: &[f64]) -> (f64, f64);
@@ -124,39 +113,27 @@ impl<'a> Compute<'a> {
         }
     }
 
+    pub fn filter_top(result: Vec<(f64, f64)>, n: Option<usize>) -> Vec<(f64, f64)> {
+        match n {
+            Some(n_top) => result,
 
-
-    pub fn  filter_top(result:Vec<(f64,f64)>,n:Option<usize>) -> Vec<(f64,f64)>{
-
-        match  n{Some(n_top) => {
-            
-            result
-        }
-
-        None => 
-        {
-        result
-
+            None => result,
         }
     }
+
+    pub fn sorter(results: &mut Vec<(f64, f64)>) {
+        //naive sorter
+        let sorted_results = results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
     }
 
-    pub fn sorter(results:&mut Vec<(f64,f64)>){
-
-      //naive sorter
-      let sorted_results = results.sort_by(|a,b|b.1.partial_cmp(&a.1).unwrap());
-
+    pub fn sorter_with_keys(results: &mut Vec<(String, f64, f64)>) {
+        let sorted_results = results.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
     }
 
-   
-   pub fn sorter_with_keys(results: &mut Vec<(String,f64,f64)>){
-       let sorted_results = results.sort_by(|a,b|b.2.partial_cmp(&a.2).unwrap());
-   }
-
-    pub fn compute(&self) -> Vec<(String,f64, f64)> {
+    pub fn compute(&self) -> Vec<(String, f64, f64)> {
         //read from file);
 
-        let mut corr_results: Vec<(String,f64, f64)> = Vec::new();
+        let mut corr_results: Vec<(String, f64, f64)> = Vec::new();
 
         let reader = BufferReader::new(self.dataset_path);
 
@@ -166,30 +143,23 @@ impl<'a> Compute<'a> {
 
                 //assumption made is that first row doesn't contain an empty value
 
-                let column_names = match buffer_read.read_line(& mut n_string){
-                    Some(row) => {
-                       row.unwrap().split(self.file_delimiter).collect::<Vec<&str>>()
-
-            
-
-                    }
+                let column_names = match buffer_read.read_line(&mut n_string) {
+                    Some(row) => row
+                        .unwrap()
+                        .split(self.file_delimiter)
+                        .collect::<Vec<&str>>(),
 
                     None => {
                         //no content in file
 
                         panic!("expected a row")
-
                     }
                 };
 
-
-            //create file from here
-
-
+                //create file from here
 
                 while let Some(val) = buffer_read.read_line(&mut n_string) {
                     if let Ok(array_new_val) = val {
-
                         //let (parsed_x_val, parsed_y_val) = parse_rows(
                         //    self.x_vals,
                         //    &array_new_val
@@ -197,36 +167,33 @@ impl<'a> Compute<'a> {
                         //        .collect::<Vec<&str>>(),
                         //);
 
-                        let ty =parse_rows_with_names(self.x_vals,&array_new_val
-                            .split(self.file_delimiter)
-                            .collect::<Vec<&str>>());
+                        let ty = parse_rows_with_names(
+                            self.x_vals,
+                            &array_new_val
+                                .split(self.file_delimiter)
+                                .collect::<Vec<&str>>(),
+                        );
 
-                        let (key_name,parsed_x_val,parsed_y_val) = (ty.row_name,ty.x_vals,ty.y_vals);
-
-                       
-                        
+                        let (key_name, parsed_x_val, parsed_y_val) =
+                            (ty.row_name, ty.x_vals, ty.y_vals);
 
                         if self.method == CorrelationMethod::Pearson {
+                            let (rho, p_val) = Pearson::new(parsed_x_val.len())
+                                .correlate(&parsed_x_val, &parsed_y_val);
 
-                            let (rho,p_val) = Pearson::new(parsed_x_val.len()).correlate(&parsed_x_val, &parsed_y_val);
-                            
-                            corr_results.push((key_name,rho,p_val));
+                            corr_results.push((key_name, rho, p_val));
 
                             //writeln!(file, "{},{},{}",key_name,rho,p_val);
-                   
                         } else {
+                            let (rho, p_val) = Spearman::new(parsed_x_val.len())
+                                .correlate(&parsed_x_val, &parsed_y_val);
 
-                            let (rho,p_val) = Spearman::new(parsed_x_val.len()).correlate(&parsed_x_val, &parsed_y_val);
-                            
-                            corr_results.push((key_name,rho,p_val));
+                            corr_results.push((key_name, rho, p_val));
 
                             //writeln!(file, "{},{},{}", key_name,rho,p_val);
-    
                         }
                     }
                 }
-
-                
             }
 
             Err(err) => panic!("an error ocurrexxxxxxxxxxxxxxd {:?}", err),
@@ -234,8 +201,7 @@ impl<'a> Compute<'a> {
 
         //naive implementation try extern sorting could save 3 seconds
 
-
-        corr_results.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
+        corr_results.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap());
 
         return corr_results;
 
@@ -412,35 +378,49 @@ mod test {
             &x_vals,
         );
 
-        assert_eq!(vec![(String::from("hello"),1.2, 1.5)], compute_obj.compute());
+        assert_eq!(
+            vec![(String::from("hello"), 1.2, 1.5)],
+            compute_obj.compute()
+        );
     }
 
     #[test]
     fn test_sorter() {
-        let mut a = vec![(1.2,1.0),(1.3,0.5),(1.3,7.)];
-        Compute::sorter(& mut a);
+        let mut a = vec![(1.2, 1.0), (1.3, 0.5), (1.3, 7.)];
+        Compute::sorter(&mut a);
 
-        let mut  f = vec![(1.2,11.1),(1.1,9.7),(11.1,7.8),(9.3,11.1),(1.3, 7.0), (1.2, 1.0), (1.3, 0.5)];
-        Compute::sorter(& mut f);    
+        let mut f = vec![
+            (1.2, 11.1),
+            (1.1, 9.7),
+            (11.1, 7.8),
+            (9.3, 11.1),
+            (1.3, 7.0),
+            (1.2, 1.0),
+            (1.3, 0.5),
+        ];
+        Compute::sorter(&mut f);
 
-
-        assert_eq!(a,vec![(1.3, 7.0), (1.2, 1.0), (1.3, 0.5)]);
-        assert_eq!(f,vec![(1.2, 11.1), (9.3, 11.1), (1.1, 9.7), (11.1, 7.8), (1.3, 7.0), (1.2, 1.0), (1.3, 0.5)]);
-
-        
+        assert_eq!(a, vec![(1.3, 7.0), (1.2, 1.0), (1.3, 0.5)]);
+        assert_eq!(
+            f,
+            vec![
+                (1.2, 11.1),
+                (9.3, 11.1),
+                (1.1, 9.7),
+                (11.1, 7.8),
+                (1.3, 7.0),
+                (1.2, 1.0),
+                (1.3, 0.5)
+            ]
+        );
     }
 
     #[test]
-    fn test_n_top(){
+    fn test_n_top() {
+        let a1 = vec![(1.2, 1.0), (1.3, 0.5), (1.3, 7.)];
 
-        let mut a1 = vec![(1.2,1.0),(1.3,0.5),(1.3,7.)];
+        let new_vec = Compute::filter_top(a1, Some(2));
 
-        let new_vec  = Compute::filter_top(a1, Some(2));
-
-        assert_eq!(new_vec,vec![(1.2,1.0),(1.3,0.5)])
-
-
-
-         
+        assert_eq!(new_vec, vec![(1.2, 1.0), (1.3, 0.5)])
     }
 }

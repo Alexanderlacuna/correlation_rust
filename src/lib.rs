@@ -1,4 +1,5 @@
-pub mod reader;
+pub mod analysis;
 pub mod correlations;
 pub mod parser;
-pub mod analysis;
+pub mod reader;
+pub mod sorter;
