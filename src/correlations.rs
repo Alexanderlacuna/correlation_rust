@@ -1,4 +1,5 @@
 use crate::parser::parse_rows_with_names;
+use crate::sorter::sort_write_to_file;
 use crate::reader::BufferReader;
 
 //way to parse the args
@@ -201,9 +202,16 @@ impl<'a> Compute<'a> {
 
         //naive implementation try extern sorting could save 3 seconds
 
+<<<<<<< HEAD
         corr_results.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap());
+=======
 
-        return corr_results;
+       // corr_results.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
+       sort_write_to_file(String::from("sorted_results.txt"), corr_results).unwrap();
+       
+>>>>>>> fa2af92aff04d2b6c9ac6e8d4f7d5e1f150b4070
+
+        return vec![]
 
         //things todo retention sort //
     }
