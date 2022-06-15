@@ -6,9 +6,13 @@ Ensure you have rust toolchain  and cargo installed
 
 run 
 
+``` rust 
 
-``` rust
-cargo build
+cargo build --release     //for optimization 
+
+//or
+
+cargo build  // for general debug
 
 
 ```
@@ -78,9 +82,10 @@ performance comparison with python scipy stats
 
 | number of rows      | python | rust |
 | ----------- | ----------- | ---------|
+| 1000000       |  118s | 6.04 s|  
 | 300000      | 38.06s     |   4.37s      |
 |100000   | 13.17s         |    1.36s   |               
-
+| 10000   | 1.21s          | 0.557s|
 
 
 
