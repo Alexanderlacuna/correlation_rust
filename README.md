@@ -38,12 +38,12 @@ cargo run --release example_json
 
 
 ```
-- expected results results are 
+- expected results results are is results to written to file contain
 
- ``` rust
-   vec![("y_name","rho","pval")]
+   - row name
+   - rho value
+   - p_val
 
-```
 
 
 ### Tests
@@ -95,7 +95,7 @@ performance comparison with python scipy stats
 
 - [ ] code optimization e.g use of iterators and lazy computation
 
-- [ ] implementation of extern sorter
+- [x] implementation of extern sorter
 
 
 - [ ] improve on error handling and messages
