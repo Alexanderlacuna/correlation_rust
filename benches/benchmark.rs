@@ -15,6 +15,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 "pearson",
                 "/home/kabui/correlation_rust/src/db300.txt",
                 &x_vals,
+                "/output.txt",
             );
 
             compute_obj.compute();
@@ -33,6 +34,7 @@ fn criterion_benchmark(c: &mut Criterion) {
                 "pearson",
                 "/home/kabui/correlation_rust/src/matrix_80.txt",
                 &x_vals,
+                "/output.txt",
             );
 
             compute_obj.compute();

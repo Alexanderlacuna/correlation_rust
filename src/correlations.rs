@@ -1,6 +1,6 @@
 use crate::parser::parse_rows_with_names;
-use crate::sorter::sort_write_to_file;
 use crate::reader::BufferReader;
+use crate::sorter::sort_write_to_file;
 
 //way to parse the args
 use rgsl::{
@@ -89,6 +89,7 @@ pub struct Compute<'a> {
     dataset_path: &'a str,
     method: CorrelationMethod,
     file_delimiter: char,
+    output_file: &'a str,
 }
 #[allow(dead_code)]
 impl<'a> Compute<'a> {
@@ -97,6 +98,7 @@ impl<'a> Compute<'a> {
         method: &str,
         dataset_path: &'a str,
         x_vals: &'a [f64],
+        output_file: &'a str,
     ) -> Self {
         //capitalize method/same cases
 
@@ -110,6 +112,7 @@ impl<'a> Compute<'a> {
             x_vals: x_vals,
             dataset_path: dataset_path,
             method: method,
+            output_file: output_file,
             file_delimiter: file_delimeter,
         }
     }
@@ -202,13 +205,12 @@ impl<'a> Compute<'a> {
 
         //naive implementation try extern sorting could save 3 seconds
 
-
         corr_results.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap());
 
-       // corr_results.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
-       sort_write_to_file(String::from("sorted_results.txt"), corr_results).unwrap();
-       
-        return vec![]
+        // corr_results.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
+        sort_write_to_file(String::from(self.output_file), corr_results).unwrap();
+
+        return vec![];
     }
 }
 #[derive(PartialEq, Debug)]
@@ -271,8 +273,8 @@ mod test {
     fn test_compute_obj() {
         let x_vals = [1., 3., 4., 5., 6., 7., 7.];
         let new_compute = [
-            Compute::new(',', "spearman", "./notes.txt", &x_vals),
-            Compute::new(',', "pearson", "./note2.txt", &x_vals),
+            Compute::new(',', "spearman", "./notes.txt", &x_vals, "/output.txt"),
+            Compute::new(',', "pearson", "./note2.txt", &x_vals, "/output.txt"),
         ];
 
         assert_eq!(
@@ -281,12 +283,14 @@ mod test {
                     file_delimiter: ',',
                     x_vals: &[1., 3., 4., 5., 6., 7., 7.],
                     dataset_path: "./notes.txt",
+                    output_file: "/output.txt",
                     method: CorrelationMethod::Spearman
                 },
                 Compute {
                     file_delimiter: ',',
                     x_vals: &[1., 3., 4., 5., 6., 7., 7.],
                     dataset_path: "./note2.txt",
+                    output_file: "/output.txt",
                     method: CorrelationMethod::Pearson
                 }
             ],
@@ -297,14 +301,21 @@ mod test {
     #[test]
     #[should_panic]
     fn test_compute_panics() {
-        let new_compute = Compute::new(',', "unknown", "/notes.txt", &[1.2, 1.4, 1.5]);
+        let new_compute = Compute::new(
+            ',',
+            "unknown",
+            "/notes.txt",
+            &[1.2, 1.4, 1.5],
+            "/output.txt",
+        );
         assert_eq!(
             new_compute,
             Compute {
                 file_delimiter: ',',
                 x_vals: &[1.2, 1.4, 1.5],
                 dataset_path: "/notes.txt",
-                method: CorrelationMethod::Pearson
+                method: CorrelationMethod::Pearson,
+                output_file: "/output.txt"
             }
         )
     }
@@ -316,6 +327,7 @@ mod test {
             "pearson",
             "/home/kabui/correlation_rust/tests/data/mock_dataset.txt",
             &[12., 15., 11., 11., 16., 11., 8., 7.],
+            "/output.txt",
         );
 
         let corr_results = compute_obj.compute();
@@ -379,6 +391,7 @@ mod test {
             "pearson",
             "/home/kabui/correlation_rust/tests/data/matrix_80.txt",
             &x_vals,
+            "/output.txt",
         );
 
         assert_eq!(

@@ -19,6 +19,7 @@ impl Analysis {
             &json_results.method,
             &json_results.file_path,
             &x_vals,
+            &json_results.output_file,
         )
         .compute();
 
