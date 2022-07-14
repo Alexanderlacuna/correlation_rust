@@ -64,7 +64,7 @@ impl Correlation for Pearson {
 impl Correlation for Spearman {
     fn correlate(&self, x: &[f64], y: &[f64]) -> (f64, f64) {
         match x.len() == y.len() {
-            true => println!("safe"),
+            true => (),
             false => panic!("array should be of the same size"),
         };
 

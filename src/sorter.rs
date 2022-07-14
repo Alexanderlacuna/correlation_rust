@@ -53,7 +53,7 @@ pub fn sort_write_to_file(
     v.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap());
     let mut buffer = BufWriter::with_capacity(BUFFER_CAPACITY, File::create(&filename).unwrap());
     for (name, rho, p_val, num_overlap) in v.iter() {
-        writeln!(buffer, "{},{},{} {}", name, rho, p_val, num_overlap).unwrap();
+        writeln!(buffer, "{},{},{},{}", name, rho, p_val, num_overlap).unwrap();
     }
     buffer.flush().unwrap();
 
