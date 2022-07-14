@@ -9,7 +9,7 @@ const BUFFER_CAPACITY: usize = 4_000_000_000;
 //struct corr_results
 
 #[derive(Debug, PartialEq, PartialOrd)]
-struct CorrResults(String, f64, f64,i32);
+struct CorrResults(String, f64, f64, i32);
 
 // impl  Sortable for  CorrResults {
 
@@ -46,14 +46,14 @@ struct CorrResults(String, f64, f64,i32);
 
 pub fn sort_write_to_file(
     filename: String,
-    mut v: Vec<(String, f64, f64,i32)>,
+    mut v: Vec<(String, f64, f64, i32)>,
 ) -> std::io::Result<String> {
     File::create(filename.clone())?;
 
     v.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap());
     let mut buffer = BufWriter::with_capacity(BUFFER_CAPACITY, File::create(&filename).unwrap());
-    for (name, rho, p_val,num_overlap) in v.iter() {
-        writeln!(buffer, "{},{},{} {}", name, rho, p_val,num_overlap).unwrap();
+    for (name, rho, p_val, num_overlap) in v.iter() {
+        writeln!(buffer, "{},{},{} {}", name, rho, p_val, num_overlap).unwrap();
     }
     buffer.flush().unwrap();
 

@@ -137,7 +137,7 @@ impl<'a> Compute<'a> {
     pub fn compute(&self) -> Vec<(String, f64, f64)> {
         //read from file);
 
-        let mut corr_results: Vec<(String, f64, f64,i32)> = Vec::new();
+        let mut corr_results: Vec<(String, f64, f64, i32)> = Vec::new();
 
         let reader = BufferReader::new(self.dataset_path);
 
@@ -185,14 +185,14 @@ impl<'a> Compute<'a> {
                             let (rho, p_val) = Pearson::new(parsed_x_val.len())
                                 .correlate(&parsed_x_val, &parsed_y_val);
 
-                            corr_results.push((key_name, rho, p_val,parsed_x_val.len()  as i32));
+                            corr_results.push((key_name, rho, p_val, parsed_x_val.len() as i32));
 
                             //writeln!(file, "{},{},{}",key_name,rho,p_val);
                         } else {
                             let (rho, p_val) = Spearman::new(parsed_x_val.len())
                                 .correlate(&parsed_x_val, &parsed_y_val);
 
-                            corr_results.push((key_name, rho, p_val,parsed_x_val.len() as i32));
+                            corr_results.push((key_name, rho, p_val, parsed_x_val.len() as i32));
 
                             //writeln!(file, "{},{},{}", key_name,rho,p_val);
                         }
