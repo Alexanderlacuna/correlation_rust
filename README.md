@@ -22,6 +22,7 @@ cargo build  // for general debug
 accepts json file with the following parameters
 example 
 expected dataset file example see --> ./tests/data/dataset_with_nans.txt
+
 ``` json
 
 //example.json
@@ -29,11 +30,7 @@ expected dataset file example see --> ./tests/data/dataset_with_nans.txt
 {
     "file_path":"/home/kabui/correlation_rust/tests/data/db300.txt", //bath to dataset file
     "x_vals":"25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703",
-<<<<<<< ours
     "sample_values":"bxd1", //do be implemented 
-=======
-    "sample_values":"bxd1", //do be implemented
->>>>>>> theirs
     "method":"pearson",  //method implemented are pearson and spearman
     "file_delimiter":",",  //needed to parse file e.g 12|212|212 delimiter=1
     "output_file":"/home/kabui/correlation_rust/output.txt" //generic path to ouput results
@@ -49,6 +46,30 @@ cargo run --release example_json
 
 
 ```
+
+### using guix
+
+## Using Guix
+
+```sh
+
+guix shell --container --network nss-certs --development gn-rust-correlation
+```
+
+Export environment variables needed by cargo to get dependencies:
+
+```
+export SSL_CERT_DIR="${GUIX_ENVIRONMENT}/etc/ssl/certs"
+export SSL_CERT_FILE="${SSL_CERT_DIR}/ca-certificates.crt"
+
+```
+Now you can run the cargo commands, e.g. to run unit tests:
+
+``` rust 
+cargo test
+```
+
+
 - expected results results are is results to written to file contain
 
    - row name
@@ -113,6 +134,9 @@ performance comparison with python scipy stats
 - [ ] improve on error handling and messages
 
 - [ ] parallel computation
+
+- [ ]  Figure out how to tell cargo to use the declared dependencies, rather than dowloading the dependencies
+
 
 
 
