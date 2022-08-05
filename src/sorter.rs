@@ -2,7 +2,7 @@
 
 //https://betterprogramming.pub/how-to-sort-a-20g-file-in-rust-12abfffbd92b
 use std::fs::File;
-use std::io::{BufWriter, Read, Write};
+use std::io::{BufWriter,Write};
 //use extsort::*;
 
 const BUFFER_CAPACITY: usize = 4_000_000_000;
