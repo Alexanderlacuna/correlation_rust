@@ -25,13 +25,16 @@ expected dataset file example see --> ./tests/data/dataset_with_nans.txt
 ``` json
 
 //example.json
-{
-    "file_path":"/home/kabui/correlation_rust/tests/data/matrix_80.txt", //dataset path
-    "x_vals":"25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703", //x-vals primary values
-    "method":"pearson",  //spearman or pearson
-    "file_delimiter":","  //need to parse file e.g "12| 212| 212|" delimiter=|
 
-}
+{
+    "file_path":"/home/kabui/correlation_rust/tests/data/db300.txt", //bath to dataset file
+    "x_vals":"25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703",
+    "sample_values":"bxd1", //do be implemented 
+    "method":"pearson",  //method implemented are pearson and spearman
+    "file_delimiter":",",  //needed to parse file e.g 12|212|212 delimiter=1
+    "output_file":"/home/kabui/correlation_rust/output.txt" //generic path to ouput results
+ }
+
 
 ```
 
