@@ -1,10 +1,10 @@
 {
-    "file_path":"/home/kabui/correlation_rust/tests/data/db300.txt",
+    "file_path":"tests/data/db300.txt",
     "x_vals": [
 	25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824,
 	6.72478, 5.72373, 73.47078, 63.74703],
     "sample_values":"bxd1",
     "method":"pearson",
     "file_delimiter":",",
-    "output_file":"/home/kabui/correlation_rust/output.txt"
+    "output_file":"output.txt"
  }

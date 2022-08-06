@@ -119,7 +119,7 @@ impl<'a> Compute<'a> {
 
     pub fn filter_top(result: Vec<(f64, f64)>, n: Option<usize>) -> Vec<(f64, f64)> {
         match n {
-            Some(n_top) => result,
+            Some(n_top) => result[0..n_top].to_vec(),
 
             None => result,
         }
@@ -127,11 +127,11 @@ impl<'a> Compute<'a> {
 
     pub fn sorter(results: &mut Vec<(f64, f64)>) {
         //naive sorter
-        let sorted_results = results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
+        let _sorted_results = results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
     }
 
     pub fn sorter_with_keys(results: &mut Vec<(String, f64, f64)>) {
-        let sorted_results = results.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
+        let _sorted_results = results.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
     }
 
     pub fn compute(&self) -> Vec<(String, f64, f64)> {
@@ -147,7 +147,7 @@ impl<'a> Compute<'a> {
 
                 //assumption made is that first row doesn't contain an empty value
 
-                let column_names = match buffer_read.read_line(&mut n_string) {
+                let _column_names = match buffer_read.read_line(&mut n_string) {
                     Some(row) => row
                         .unwrap()
                         .split(self.file_delimiter)
@@ -221,7 +221,7 @@ enum CorrelationMethod {
 
 #[cfg(test)]
 
-mod test {
+mod tests {
 
     use super::*;
     use assert_approx_eq::assert_approx_eq;
@@ -325,7 +325,7 @@ mod test {
         let compute_obj = Compute::new(
             ',',
             "pearson",
-            "/home/kabui/correlation_rust/tests/data/mock_dataset.txt",
+            "tests/data/mock_dataset.txt",
             &[12., 15., 11., 11., 16., 11., 8., 7.],
             "/output.txt",
         );
@@ -389,7 +389,7 @@ mod test {
         let compute_obj = Compute::new(
             ',',
             "pearson",
-            "/home/kabui/correlation_rust/tests/data/matrix_80.txt",
+            "tests/data/matrix_80.txt",
             &x_vals,
             "/output.txt",
         );

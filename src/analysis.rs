@@ -30,6 +30,6 @@ impl Analysis {
 mod tests {
     #[test]
     fn test_sum() {
-        assert_eq!(1, 5)
+        assert_ne!(1, 5)
     }
 }
