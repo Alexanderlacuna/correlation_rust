@@ -6,7 +6,7 @@ use std::io::Read;
 
 pub struct JsonData {
     pub file_path: String,
-    pub x_vals: String,
+    pub x_vals: Vec<f64>,
     pub sample_values: String,
     pub method: String,
     pub file_delimiter: char,

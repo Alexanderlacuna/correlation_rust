@@ -8,11 +8,7 @@ impl Analysis {
 
         //above should return  a results
 
-        let x_vals: Vec<f64> = json_results
-            .x_vals
-            .split(",")
-            .map(|f| f.trim().parse::<f64>().unwrap())
-            .collect();
+        let x_vals: Vec<f64> = json_results.x_vals;
 
         let computation = correlations::Compute::new(
             json_results.file_delimiter,
