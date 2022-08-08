@@ -134,8 +134,7 @@ impl<'a> Compute<'a> {
         let _sorted_results = results.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
     }
 
-    pub fn compute(&self) -> Vec<(String, f64, f64)> {
-        //read from file);
+    pub fn compute(&self) -> std::io::Result<String> {
 
         let mut corr_results: Vec<(String, f64, f64, i32)> = Vec::new();
 
@@ -208,9 +207,9 @@ impl<'a> Compute<'a> {
         corr_results.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap());
 
         // corr_results.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
-        sort_write_to_file(String::from(self.output_file), corr_results).unwrap();
+        return sort_write_to_file(String::from(self.output_file), corr_results);
 
-        return vec![];
+    
     }
 }
 #[derive(PartialEq, Debug)]
@@ -222,6 +221,8 @@ enum CorrelationMethod {
 #[cfg(test)]
 
 mod tests {
+
+    use std::vec;
 
     use super::*;
     use assert_approx_eq::assert_approx_eq;
@@ -332,19 +333,11 @@ mod tests {
 
         let corr_results = compute_obj.compute();
 
-        let expected_results = vec![
-            (1.0, 0.0),
-            (-0.2550, 0.6787),
-            (-0.2168, 0.7260),
-            (0.3941, 0.5115),
-        ];
+        assert!(corr_results.is_ok())
 
-        for (index, (_key_name, rho, pval)) in corr_results.iter().enumerate() {
-            let (exp_corr, exp_pval) = &(expected_results[index]);
 
-            assert_approx_eq!(rho, exp_corr, 2f64);
-            assert_approx_eq!(pval, exp_pval, 2f64);
-        }
+
+   
     }
 
     #[test]
@@ -376,29 +369,6 @@ mod tests {
         )
     }
 
-    #[test]
-
-    fn test_huge_dataset() {
-        let x_vals = [
-            25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824,
-            6.72478, 5.72373, 73.47078, 63.74703,
-        ];
-
-        //for tests only
-
-        let compute_obj = Compute::new(
-            ',',
-            "pearson",
-            "tests/data/matrix_80.txt",
-            &x_vals,
-            "/output.txt",
-        );
-
-        assert_eq!(
-            vec![(String::from("hello"), 1.2, 1.5)],
-            compute_obj.compute()
-        );
-    }
 
     #[test]
     fn test_sorter() {
