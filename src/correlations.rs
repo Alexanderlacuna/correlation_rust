@@ -327,7 +327,7 @@ mod tests {
             "pearson",
             "tests/data/mock_dataset.txt",
             &[12., 15., 11., 11., 16., 11., 8., 7.],
-            "/output.txt",
+            "./output.txt",
         );
 
         let corr_results = compute_obj.compute();
