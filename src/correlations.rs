@@ -78,7 +78,7 @@ impl Correlation for Spearman {
         let t = rho * (self.degrees_of_freedom / ((rho + 1.0) * (1.0 - rho))).sqrt();
         let p_val = 2.0 * (tdist_Q(t.abs(), self.degrees_of_freedom));
 
-        return (rho, p_val);
+        (rho, p_val)
     }
 }
 
@@ -329,12 +329,12 @@ mod tests {
         let expected_results = vec![9., 5., 0., 7., 6., 1., 5., 0.];
 
         let results: Vec<f64> = data
-            .split(",")
+            .split(',')
             .map(|f_str| f_str.trim().parse::<f64>().expect("parse failed"))
             .collect();
 
         let u: Vec<f64> = y
-            .split(",")
+            .split(',')
             .map(|f_str| f_str.trim().parse::<f64>().expect("parse failed"))
             .collect();
 
