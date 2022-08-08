@@ -35,6 +35,7 @@ pub struct CorrelationEvaluateRow {
 }
 
 impl CorrelationEvaluateRow {
+    #[allow(dead_code)]
     fn new(row_name: &str, x_vals: Vec<f64>, y_vals: Vec<f64>) -> Self {
         Self {
             row_name: String::from(row_name),

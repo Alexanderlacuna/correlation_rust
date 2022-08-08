@@ -2,6 +2,8 @@ use correlation_rust::correlations::Compute;
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::time::Duration;
 
+
+#[allow(unused_must_use)]
 fn criterion_benchmark(c: &mut Criterion) {
     c.bench_function("correlation with 300thousand rows", |b| {
         b.iter(|| {
