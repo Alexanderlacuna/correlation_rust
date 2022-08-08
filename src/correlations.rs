@@ -159,16 +159,9 @@ impl<'a> Compute<'a> {
                     }
                 };
 
-                //create file from here
-
                 while let Some(val) = buffer_read.read_line(&mut n_string) {
                     if let Ok(array_new_val) = val {
-                        //let (parsed_x_val, parsed_y_val) = parse_rows(
-                        //    self.x_vals,
-                        //    &array_new_val
-                        //        .split(self.file_delimiter)
-                        //        .collect::<Vec<&str>>(),
-                        //);
+            
 
                         let ty = parse_rows_with_names(
                             self.x_vals,
@@ -185,15 +178,11 @@ impl<'a> Compute<'a> {
                                 .correlate(&parsed_x_val, &parsed_y_val);
 
                             corr_results.push((key_name, rho, p_val, parsed_x_val.len() as i32));
-
-                            //writeln!(file, "{},{},{}",key_name,rho,p_val);
                         } else {
                             let (rho, p_val) = Spearman::new(parsed_x_val.len())
                                 .correlate(&parsed_x_val, &parsed_y_val);
 
                             corr_results.push((key_name, rho, p_val, parsed_x_val.len() as i32));
-
-                            //writeln!(file, "{},{},{}", key_name,rho,p_val);
                         }
                     }
                 }
