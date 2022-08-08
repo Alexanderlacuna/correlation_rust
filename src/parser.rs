@@ -55,13 +55,13 @@ pub fn parse_rows_with_names(x_vals: &[f64], y_vals: &[&str]) -> CorrelationEval
         None => String::from(""),
     };
 
-    let results = parse_rows(x_vals, &string_floats);
+    let results = parse_rows(x_vals, string_floats);
 
-    return CorrelationEvaluateRow {
+    CorrelationEvaluateRow {
         row_name,
         x_vals: results.0,
         y_vals: results.1,
-    };
+    }
 }
 pub fn parse_rows(x_vals: &[f64], y_vals: &[&str]) -> (Vec<f64>, Vec<f64>) {
     //optimization ?? memory
@@ -72,7 +72,7 @@ pub fn parse_rows(x_vals: &[f64], y_vals: &[&str]) -> (Vec<f64>, Vec<f64>) {
 
     let mut parsed_y_vals = Vec::new();
 
-    for (index, x_val) in x_vals.into_iter().enumerate() {
+    for (index, x_val) in x_vals.iter().enumerate() {
         if let Some(val) = y_vals.get(index) {
             match val.trim().parse::<f64>() {
                 Ok(float_type) => {
@@ -156,11 +156,19 @@ mod tests {
 
     #[test]
     fn test_json_file_read() {
-        let json_struct =
-            JsonData::new("tests/data/sample_json_file.json");
+        let json_struct = JsonData::new("tests/data/sample_json_file.json");
 
         let k = JsonData {
-	    file_path: String::from("tests/data/db300.txt"),output_file:String::from("output.txt"),x_vals: vec![25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703],sample_values: String::from("bxd1"),method:String::from("pearson"),file_delimiter:','};
+            file_path: String::from("tests/data/db300.txt"),
+            output_file: String::from("output.txt"),
+            x_vals: vec![
+                25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824,
+                6.72478, 5.72373, 73.47078, 63.74703,
+            ],
+            sample_values: String::from("bxd1"),
+            method: String::from("pearson"),
+            file_delimiter: ',',
+        };
 
         assert_eq!(k, json_struct)
     }

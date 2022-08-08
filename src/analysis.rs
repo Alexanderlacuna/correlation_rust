@@ -21,7 +21,7 @@ impl Analysis {
 
         // let computation = correlations::Compute::filter_top(computation, 500);
 
-       return computation_status
+        computation_status
     }
 }
 

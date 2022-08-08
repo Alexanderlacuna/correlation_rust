@@ -109,10 +109,10 @@ impl<'a> Compute<'a> {
         };
 
         Self {
-            x_vals: x_vals,
-            dataset_path: dataset_path,
-            method: method,
-            output_file: output_file,
+            x_vals,
+            dataset_path,
+            method,
+            output_file,
             file_delimiter: file_delimeter,
         }
     }
@@ -135,7 +135,6 @@ impl<'a> Compute<'a> {
     }
 
     pub fn compute(&self) -> std::io::Result<String> {
-
         let mut corr_results: Vec<(String, f64, f64, i32)> = Vec::new();
 
         let reader = BufferReader::new(self.dataset_path);
@@ -161,8 +160,6 @@ impl<'a> Compute<'a> {
 
                 while let Some(val) = buffer_read.read_line(&mut n_string) {
                     if let Ok(array_new_val) = val {
-            
-
                         let ty = parse_rows_with_names(
                             self.x_vals,
                             &array_new_val
@@ -195,10 +192,7 @@ impl<'a> Compute<'a> {
 
         corr_results.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap());
 
-        // corr_results.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
-        return sort_write_to_file(String::from(self.output_file), corr_results);
-
-    
+        sort_write_to_file(String::from(self.output_file), corr_results)
     }
 }
 #[derive(PartialEq, Debug)]
@@ -323,10 +317,6 @@ mod tests {
         let corr_results = compute_obj.compute();
 
         assert!(corr_results.is_ok())
-
-
-
-   
     }
 
     #[test]
@@ -357,7 +347,6 @@ mod tests {
             ]
         )
     }
-
 
     #[test]
     fn test_sorter() {

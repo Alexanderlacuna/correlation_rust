@@ -13,9 +13,9 @@ impl BufferReader {
         let file = File::open(Path::new(file_path))?;
         //add file validator
 
-        return Ok(Self {
+        Ok(Self {
             reader: BufReader::new(file),
-        });
+        })
     }
 
     pub fn read_line<'a>(
@@ -29,7 +29,7 @@ impl BufferReader {
         self.reader
             .read_line(buf)
             .map(|u| {
-                if u == 0 as usize {
+                if u == 0_usize {
                     return None;
                 }
 
@@ -62,16 +62,14 @@ mod tests {
     #[test]
 
     fn test_file_reader() {
-        let expected_results =
-            file_reader("tests/data/mock_dataset.txt");
+        let expected_results = file_reader("tests/data/mock_dataset.txt");
 
         assert!(expected_results.is_ok());
     }
 
     #[test]
     fn test_file_reader_2() {
-        let mut buffer_reader =
-            BufferReader::new("tests/data/mock_dataset.txt").unwrap();
+        let mut buffer_reader = BufferReader::new("tests/data/mock_dataset.txt").unwrap();
         let mut buf = String::new();
         let mut data = [
             "9. ,5. ,0. ,7. ,6. ,1. ,5. ,0.\n",
