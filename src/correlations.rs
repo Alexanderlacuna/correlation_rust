@@ -125,13 +125,9 @@ impl<'a> Compute<'a> {
         }
     }
 
-    pub fn sorter(results: &mut Vec<(f64, f64)>) {
+    pub fn sorter(results: &mut [(f64, f64)]) {
         //naive sorter
-        let _sorted_results = results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
-    }
-
-    pub fn sorter_with_keys(results: &mut Vec<(String, f64, f64)>) {
-        let _sorted_results = results.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap());
+        results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap());
     }
 
     pub fn compute(&self) -> std::io::Result<String> {
