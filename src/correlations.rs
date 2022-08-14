@@ -139,21 +139,6 @@ impl<'a> Compute<'a> {
             Ok(mut buffer_read) => {
                 let mut n_string = String::new();
 
-                //assumption made is that first row doesn't contain an empty value
-
-                let _column_names = match buffer_read.read_line(&mut n_string) {
-                    Some(row) => row
-                        .unwrap()
-                        .split(self.file_delimiter)
-                        .collect::<Vec<&str>>(),
-
-                    None => {
-                        //no content in file
-
-                        panic!("expected a row")
-                    }
-                };
-
                 while let Some(val) = buffer_read.read_line(&mut n_string) {
                     if let Ok(array_new_val) = val {
                         let ty = parse_rows_with_names(
