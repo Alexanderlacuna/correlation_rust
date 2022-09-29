@@ -61,7 +61,7 @@ Export environment variables needed by cargo to get dependencies:
 ```
 export SSL_CERT_DIR="${GUIX_ENVIRONMENT}/etc/ssl/certs"
 export SSL_CERT_FILE="${SSL_CERT_DIR}/ca-certificates.crt"
-
+export LD_LIBRARY_PATH="${GUIX_ENVIRONMENT}/lib"
 ```
 Now you can run the cargo commands, e.g. to run unit tests:
 
