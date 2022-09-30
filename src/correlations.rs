@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::parser::parse_rows_with_names;
 use crate::reader::BufferReader;
 use crate::sorter::sort_write_to_file;
@@ -171,7 +173,9 @@ impl<'a> Compute<'a> {
 
         //naive implementation try extern sorting could save 3 seconds
 
-        corr_results.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap());
+        corr_results.sort_by(|a, b| {
+	    b.1.abs().partial_cmp(&a.1.abs()).unwrap_or_else(|| {
+		Ordering::Less})});
 
         sort_write_to_file(String::from(self.output_file), corr_results)
     }

@@ -2,6 +2,7 @@
 
 //https://betterprogramming.pub/how-to-sort-a-20g-file-in-rust-12abfffbd92b
 use std::fs::File;
+use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
 //use extsort::*;
 
@@ -50,7 +51,7 @@ pub fn sort_write_to_file(
 ) -> std::io::Result<String> {
     File::create(filename.clone())?;
 
-    v.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap());
+    v.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap_or_else(|| Ordering::Less));
     let mut buffer = BufWriter::with_capacity(BUFFER_CAPACITY, File::create(&filename).unwrap());
     for (name, rho, p_val, num_overlap) in v.iter() {
         writeln!(buffer, "{},{},{},{}", name, rho, p_val, num_overlap).unwrap();
