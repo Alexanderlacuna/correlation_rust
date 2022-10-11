@@ -149,6 +149,11 @@ impl<'a> Compute<'a> {
                                 .split(self.file_delimiter)
                                 .collect::<Vec<&str>>(),
                         );
+			if ty.x_vals.len() < 4 || ty.y_vals.len() < 4 {
+			    // minimum number of acceptable trait values for
+			    // computing the correlations
+			    continue;
+			}
 
                         let (key_name, parsed_x_val, parsed_y_val) =
                             (ty.row_name, ty.x_vals, ty.y_vals);
