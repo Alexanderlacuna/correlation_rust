@@ -24,12 +24,3 @@ impl Analysis {
         computation_status
     }
 }
-
-#[cfg(test)]
-
-mod tests {
-    #[test]
-    fn test_sum() {
-        assert_ne!(1, 5)
-    }
-}

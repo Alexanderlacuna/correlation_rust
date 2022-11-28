@@ -18,12 +18,10 @@ impl JsonData {
         let mut buff = String::new();
         file.read_to_string(&mut buff).unwrap();
 
-        let results = match serde_json::from_str(&buff) {
+        match serde_json::from_str(&buff) {
             Ok(val) => val,
             Err(error) => panic!("json file not well formatted {:?}", error),
-        };
-
-        results
+        }
     }
 }
 
@@ -45,9 +43,6 @@ impl CorrelationEvaluateRow {
     }
 }
 pub fn parse_rows_with_names(x_vals: &[f64], y_vals: &[&str]) -> CorrelationEvaluateRow {
-    //initial stage
-
-    //extract names
 
     let string_floats = &y_vals[1..];
 
@@ -65,9 +60,6 @@ pub fn parse_rows_with_names(x_vals: &[f64], y_vals: &[&str]) -> CorrelationEval
     }
 }
 pub fn parse_rows(x_vals: &[f64], y_vals: &[&str]) -> (Vec<f64>, Vec<f64>) {
-    //optimization ?? memory
-
-    // assumes first item in row is the name of values i.e trait_1 , 12 , 12 , 12,14
 
     let mut parsed_x_vals = Vec::new();
 
@@ -89,19 +81,13 @@ pub fn parse_rows(x_vals: &[f64], y_vals: &[&str]) -> (Vec<f64>, Vec<f64>) {
     (parsed_x_vals, parsed_y_vals)
 }
 
-pub fn file_path_validator() {
-    todo!()
-}
 #[cfg(test)]
-
 mod tests {
 
     use super::*;
     #[test]
 
     fn test_parsing_rows() {
-        //todo add test cases
-
         let x_vals = [12.2, 12.1, 16.5, 11.1];
         let pure_string = ["12.1", "11.1", "11.6", "11.7"];
 
@@ -120,8 +106,6 @@ mod tests {
 
     #[test]
     fn test_extract_keys() {
-        //check on allocation
-
         let x_vals = [12.2, 12.1, 16.5, 11.1, 11.6];
 
         let expected_results = [
