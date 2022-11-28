@@ -51,7 +51,10 @@ pub fn sort_write_to_file(
 ) -> std::io::Result<String> {
     File::create(filename.clone())?;
 
-    v.sort_by(|a, b| b.1.abs().partial_cmp(&a.1.abs()).unwrap_or_else(|| Ordering::Less));
+
+
+    custom_float_sorter(& mut v);
+
     let mut buffer = BufWriter::with_capacity(BUFFER_CAPACITY, File::create(&filename).unwrap());
     for (name, rho, p_val, num_overlap) in v.iter() {
         writeln!(buffer, "{},{},{},{}", name, rho, p_val, num_overlap).unwrap();
@@ -65,14 +68,30 @@ pub fn create_large_file(filename: &str) {
     File::create(filename).unwrap();
 }
 
+
+pub fn custom_float_sorter(v:&mut[(String,f64,f64,i32)]){
+
+//sorter for specific case rust
+
+v.sort_by(|a, b| {
+        match (a.1.is_nan()| a.1.is_infinite(), b.1.is_nan()|b.1.is_infinite()) {
+            (true, true) => Ordering::Equal,
+            (true, false) => Ordering::Greater,
+            (false, true) => Ordering::Less,
+            (false, false) => b.1.abs().partial_cmp(&a.1.abs()).unwrap(),
+        }
+    });
+
+}
 pub fn float_sorter(unsorted:& mut [f64]){
+    //only  for test case
     // custom function to sort floats with nan and inf descending order
     unsorted.sort_by(|&a, &b| {
         match (a.is_nan()| a.is_infinite(), b.is_nan()|b.is_infinite()) {
             (true, true) => Ordering::Equal,
             (true, false) => Ordering::Greater,
             (false, true) => Ordering::Less,
-            (false, false) => b.partial_cmp(&a).unwrap(),
+            (false, false) => b.abs().partial_cmp(&a.abs()).unwrap(),
         }
     });
 }
@@ -102,14 +121,15 @@ mod tests{
 
 
         
-        let  mut test_cases:[(Vec<f64>, Vec<f64>);6] = [( vec![f64::NAN,12.1,11.1,1.1],vec![12.1,11.1,1.1,f64::NAN]),
+        let  mut test_cases:[(Vec<f64>, Vec<f64>);7] = [( vec![f64::NAN,12.1,11.1,1.1],vec![12.1,11.1,1.1,f64::NAN]),
         (vec![2.1,1.1,2.3,f64::NAN],vec![2.3,2.1,1.1,f64::NAN]),
         (vec![f64::NAN,f64::NAN,9.1],vec![9.1,f64::NAN,f64::NAN]),
         (vec![f64::INFINITY,1.12,f64::INFINITY,42.1],vec![42.1,1.12,f64::INFINITY,f64::INFINITY]),
         (vec![1.1,1.4,1.5,12.1],vec![12.1,1.5,1.4,1.1]),
         (vec![ f64::INFINITY,f64::INFINITY,2.13,5.3,f64::NAN,12.1,f64::INFINITY,5.6,f64::NAN,f64::NAN,8.32],
             vec![12.1, 8.32, 5.6, 5.3, 2.13, f64::INFINITY, f64::INFINITY, f64::NAN, f64::INFINITY, f64::NAN, f64::INFINITY]
-        )
+        ),
+        (vec![1.1,-4.1,4.0,f64::NAN],vec![-4.1,4.0,1.1,f64::NAN])
         ];
 
         for (test_case,expected_case) in &mut test_cases{
