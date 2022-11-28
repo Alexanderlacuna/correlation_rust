@@ -12,38 +12,6 @@ const BUFFER_CAPACITY: usize = 4_000_000_000;
 #[derive(Debug, PartialEq, PartialOrd)]
 struct CorrResults(String, f64, f64, i32);
 
-// impl  Sortable for  CorrResults {
-
-//  fn decode<R: Read>(reader: &mut R) -> Option<Self> {
-
-//        todo!()
-//    }
-
-//    fn encode<W: Write>(&self, writer: &mut W) {
-
-//        writer.write_fmt(format_args!("{} {} {}",self.0,self.1,self.2)).unwrap();
-
-//    }
-
-// }
-
-// fn ext_sorter (unsorted_vec:Vec<CorrResults>,file_name:&str,n_top:usize)-> std::io::Result<Vec<CorrResults>>{
-
-//    File::create(file_name)?;
-
-//    let sorter = ExternalSorter::new().with_segment_size(4_000_000);
-
-//    let into_iterator = unsorted_vec.into_iter();
-
-//    let sorted = sorter.sort_by(into_iterator, |a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap())?.collect::<Vec<CorrResults>>();
-
-//sorted.collect::<Vec<CorrResults>>().truncate(n_top);
-
-//    Ok(sorted)
-
-//corr_results.sort_by(|a,b|b.1.abs().partial_cmp(&a.1.abs()).unwrap());
-
-// }
 
 pub fn sort_write_to_file(
     filename: String,
