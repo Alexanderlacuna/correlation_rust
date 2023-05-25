@@ -45,49 +45,33 @@ impl CorrelationEvaluateRow {
     }
 }
 pub fn parse_rows_with_names(x_vals: &[f64], y_vals: &[&str]) -> CorrelationEvaluateRow {
-    //initial stage
-
-    //extract names
-
     let string_floats = &y_vals[1..];
 
-    let row_name = match y_vals.get(0) {
-        Some(row_key) => String::from(*row_key),
-        None => String::from(""),
-    };
+    let row_name = y_vals.get(0).map_or(String::new(), |row_key| String::from(*row_key));
 
-    let results = parse_rows(x_vals, string_floats);
+    let (parsed_x_vals, parsed_y_vals) = parse_rows(x_vals, string_floats);
 
     CorrelationEvaluateRow {
         row_name,
-        x_vals: results.0,
-        y_vals: results.1,
+        x_vals: parsed_x_vals,
+        y_vals: parsed_y_vals,
     }
 }
+
 pub fn parse_rows(x_vals: &[f64], y_vals: &[&str]) -> (Vec<f64>, Vec<f64>) {
-    //optimization ?? memory
+    let mut parsed_x_vals = Vec::with_capacity(x_vals.len());
+    let mut parsed_y_vals = Vec::with_capacity(y_vals.len());
 
-    // assumes first item in row is the name of values i.e trait_1 , 12 , 12 , 12,14
-
-    let mut parsed_x_vals = Vec::new();
-
-    let mut parsed_y_vals = Vec::new();
-
-    for (index, x_val) in x_vals.iter().enumerate() {
-        if let Some(val) = y_vals.get(index) {
-            match val.trim().parse::<f64>() {
-                Ok(float_type) => {
-                    parsed_x_vals.push(*x_val);
-                    parsed_y_vals.push(float_type);
-                }
-
-                Err(_not_float) => continue,
-            }
-        }
+    for (x_val, y_val) in x_vals.iter().zip(y_vals.iter()).filter_map(|(&x_val, &y_val)| {
+        y_val.trim().parse::<f64>().ok().map(|float_type| (x_val, float_type))
+    }) {
+        parsed_x_vals.push(x_val);
+        parsed_y_vals.push(y_val);
     }
 
     (parsed_x_vals, parsed_y_vals)
 }
+
 
 pub fn file_path_validator() {
     todo!()
