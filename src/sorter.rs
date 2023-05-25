@@ -6,8 +6,10 @@ use std::cmp::Ordering;
 use std::io::{BufWriter, Write};
 //use extsort::*;
 
-const BUFFER_CAPACITY: usize = 4_000_000_000;
+//const BUFFER_CAPACITY: usize = 4_000_000_000;
 //struct corr_results
+
+const BUFFER_CAPACITY: usize = 12_000;
 
 #[derive(Debug, PartialEq, PartialOrd)]
 struct CorrResults(String, f64, f64, i32);
