@@ -43,6 +43,7 @@ pub struct LmdbCorrelation{
 }
 impl LmdbCorrelation {
     pub fn new(json_file_path:&str) -> Self{
+        println!("the file currently is {json_file_path}");
         let mut file = std::fs::File::open(json_file_path).unwrap();
         let mut buff = String::new();
         file.read_to_string(&mut buff).unwrap();
@@ -61,58 +62,70 @@ where
 }
 
 
+
+pub fn deserialize_json<T: DeserializeOwned>(&self,data:&[u8])-> Result<T,serde_json::Error>{
+    serde_json::from_slice(data)
+}
+
+
 pub fn compute_full_dataset(&self) -> std::io::Result<String> {
 
     let meta = match self.file_type.to_lowercase().as_str(){
-        "lmdb" =>{
+        "lmdb" =>{ 
              let results = LMDBReader::new(&self.lmdb_target_path).expect("could not read the database")
-             .read(self.lmdb_target_key.as_bytes()).expect("Key not found");
+             .read(self.lmdb_target_key.as_bytes()).expect("key  not found");
              let meta:MyStruct2 = match results{
-                Some(data) => self.unpickle_data(&data).expect("failed to unpickle"),
+                Some(data) => self.deserialize_json(&data).expect("failed to unpickle"),
                 None => panic!("not data found")
              };     
              meta      
         }
         ("csv" | "txt") =>{
-            let meta = LmdbCorrelation::reader(&self, &self.lmdb_target_path);
+            let meta = self.reader();
             meta 
         }
           _ => {panic!("file should either be lmdb or csv/txt file")}
           
     };
 
+
     self.compute(meta)
+
+  
 
 
     //do the read operation
 
 }
 pub fn compute(&self, data: MyStruct2) -> std::io::Result<String> {
-    let set_b: Vec<String> = self.primary_sample_names.iter().cloned().collect();
 
-    let target_indexes: Vec<usize> = data.strain_names
-        .iter()
-        .enumerate()
-        .filter_map(|(i, item_a)| set_b.contains(item_a).then(|| i))
-        .collect();
+        let mut  target_indexes = Vec::new();
+        let mut indexes_b = Vec::new();
+
+        for (index, element) in data.strain_names.iter().enumerate() {
+            if self.primary_sample_names.contains(element) {
+                target_indexes.push(index);
+                indexes_b.push(self.primary_sample_names.iter().position(|x| x == element).unwrap());
+            }
+        }
 
     let mut correlation_results: Vec<(String, f64, f64,i32)> = data.data
         .par_iter()
         .map(|(key, values)| {
             let mut parsed_y_vals: Vec<f64> = Vec::new();
-            let mut parsed_x_vals = Vec::new();
 
-            for &index in &target_indexes {
-                
-                if let (Some(Some(val_y)), Some(val_x)) = (values.get(index), self.primary_trait.get(index)) {
-                    parsed_x_vals.push(*val_x);
-                    parsed_y_vals.push(*val_y);
+            let  parsed_x_vals: Vec<f64> =  indexes_b
+            .iter()
+            .filter_map(|&i| self.primary_trait.get(i).cloned())
+            .collect();
+            for &index in &target_indexes {                
+                if let Some(Some(val_y)) = values.get(index){
+                        parsed_y_vals.push(*val_y);
                 }
             }
-            if  parsed_y_vals.len() <= 4 {
-                return (key.clone(), f64::NAN, f64::NAN,parsed_x_vals.len() as i32);
+            if (parsed_y_vals.len() <=4){
+                return (key.clone(),f64::NAN,f64::NAN,parsed_y_vals.len() as i32)
             }
-
             let (rho, p_val) = match self.method.to_lowercase().as_str() {
                 "pearson" => Pearson::new(parsed_x_vals.len()).correlate(&parsed_x_vals, &parsed_y_vals),
                 _ => Spearman::new(parsed_x_vals.len()).correlate(&parsed_x_vals, &parsed_y_vals),
@@ -180,7 +193,7 @@ impl Drop for LMDBReader {
 
 
 trait CSV_Parser {
-    fn reader(&self,file_path:&str)->MyStruct2 ;
+    fn reader(&self)->MyStruct2 ;
 
     
 }
@@ -206,11 +219,15 @@ fn parse_csv_line(line: &str) -> Result<(String, Vec<Option<f64>>), Box<dyn Erro
     }
 }
 impl CSV_Parser for LmdbCorrelation {
-    fn reader(&self,json_file:&str) ->MyStruct2{
-        let results = Self::new(json_file);
+    fn reader(&self) ->MyStruct2{
+        
 
-        use std::io::{self, BufRead, BufReader};    
-        let file = std::fs::File::open(&results.lmdb_target_path).unwrap(); 
+        
+
+        use std::io::{self, BufRead, BufReader}; 
+        let file = std::fs::File::open(Path::new(&self.lmdb_target_path)).unwrap(); 
+
+        
         let mut reader  = BufReader::new(file);
 
         let  mut col_names = String::new();
