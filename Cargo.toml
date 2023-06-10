@@ -11,9 +11,12 @@ edition = "2021"
 GSL = "6.0.0"
 
 assert_approx_eq = "1.1.0"
+lmdb = "0.8.0"
+rayon = "1.7.0"
 
 
 serde = { version = "1.0.104", features = ["derive"] }
+serde-pickle = "1.1.1"
 serde_json = "1.0.48"
 
 
