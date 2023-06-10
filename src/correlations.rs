@@ -21,7 +21,7 @@ pub struct Pearson {
 }
 
 #[derive(PartialEq, Debug)]
-struct Spearman {
+pub struct Spearman {
     n: usize,
     degrees_of_freedom: f64,
 }
@@ -134,24 +134,19 @@ impl<'a> Compute<'a> {
     }
 
     pub fn compute(&self) -> std::io::Result<String> {
-        let mut corr_results: Vec<(String, f64, f64, i32)> = Vec::new();
-
       use std::io::{self, BufRead, BufReader};     
 
-
         let chunk_size = 1000; // Set the desired chunk size here
-
-         let file = std::fs::File::open(&self.dataset_path)?;
-
-        let reader_1 = BufReader::new(file);
-
-           let chunks: Vec<Vec<String>> = reader_1
+        let file = std::fs::File::open(&self.dataset_path)?;
+        let chunks: Vec<Vec<String>> = BufReader::new(file)
         .lines()
         .filter_map(|line| line.ok())
         .collect::<Vec<String>>()
         .chunks(chunk_size)
         .map(|chunk| chunk.to_vec())
+
         .collect();
+       
 
         let results:Vec<Vec<(String, f64, f64, i32)>> = chunks 
         .par_iter().map(|chunk|{
@@ -183,21 +178,31 @@ impl<'a> Compute<'a> {
               
 
             }
-               chunk_results
+               
+        chunk_results.sort_by(|a, b| {
+        b.1.abs().partial_cmp(&a.1.abs()).unwrap_or_else(|| {
+        Ordering::Less})});
+            if chunk_results.len() > 500 {
+            chunk_results.truncate(500);
+        };
+
+        chunk_results
 
         }).collect();
 
-           for chunk_result in  results{
-        corr_results.extend(chunk_result);
-    }
+    let mut corr_results: Vec<(String, f64, f64, i32)> = results
+    .into_par_iter()
+    .flatten()
+    .collect();
 
-        corr_results.sort_by(|a, b| {
+        if corr_results.len() > 500 {
+    corr_results.truncate(500);
+}
+     corr_results.sort_by(|a, b| {
 	    b.1.abs().partial_cmp(&a.1.abs()).unwrap_or_else(|| {
 		Ordering::Less})});
         sort_write_to_file(String::from(self.output_file),
-            corr_results[0..500].to_vec())
- 
-
+            corr_results)
     }
 }
 #[derive(PartialEq, Debug)]
