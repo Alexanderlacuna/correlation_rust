@@ -176,12 +176,6 @@ impl<'a> Compute<'a> {
             Err(err) => panic!("an error ocurrexxxxxxxxxxxxxxd {:?}", err),
         }
 
-        //naive implementation try extern sorting could save 3 seconds
-
-        corr_results.sort_by(|a, b| {
-	    b.1.abs().partial_cmp(&a.1.abs()).unwrap_or_else(|| {
-		Ordering::Less})});
-
         sort_write_to_file(String::from(self.output_file), corr_results)
     }
 }
