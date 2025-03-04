@@ -37,20 +37,26 @@ pub fn create_large_file(filename: &str) {
 }
 
 
-pub fn custom_float_sorter(v:&mut[(String,f64,f64,i32)]){
-
-//sorter for specific case rust
-
-v.sort_by(|a, b| {
-        match (a.1.is_nan()| a.1.is_infinite(), b.1.is_nan()|b.1.is_infinite()) {
-            (true, true) => Ordering::Equal,
-            (true, false) => Ordering::Greater,
+pub fn custom_float_sorter(v: &mut [(String, f64, f64, i32)]) {
+    v.sort_by(|a, b| {
+        match (a.1.is_nan(), b.1.is_nan()) {
+            (true, true) => Ordering::Equal,   // Keep relative NaN order
+            (true, false) => Ordering::Greater, // NaN should be last
             (false, true) => Ordering::Less,
-            (false, false) => b.1.abs().partial_cmp(&a.1.abs()).unwrap(),
+            (false, false) => match (a.1, b.1) {
+                (x, y) if x.is_infinite() && y.is_infinite() => y.partial_cmp(&x).unwrap(),
+                (x, _) if x == f64::INFINITY => Ordering::Less, // ∞ should be first
+                (_, x) if x == f64::INFINITY => Ordering::Greater,
+                (x, _) if x == f64::NEG_INFINITY => Ordering::Greater, // -∞ should be last
+                (_, x) if x == f64::NEG_INFINITY => Ordering::Less,
+                _ => b.1.partial_cmp(&a.1).unwrap(), // Proper decreasing order
+            },
         }
     });
-
 }
+
+
+
 pub fn float_sorter(unsorted:& mut [f64]){
     //only  for test case
     // custom function to sort floats with nan and inf descending order
@@ -66,46 +72,83 @@ pub fn float_sorter(unsorted:& mut [f64]){
 
 
 mod tests{
-
-
-    //custom function to to be able to compare  vec with floats
- 
-    fn eq_with_nan_eq(a: f64, b: f64) -> bool {
-        ((a.is_nan()| a.is_infinite()) &&
-         (b.is_nan()| b.is_infinite())) || (a == b)
+   use super::custom_float_sorter;
+   #[test]
+    fn test_basic_sorting_desc() {
+        let mut data = vec![
+            ("a".to_string(), 3.0, 0.0, 1),
+            ("b".to_string(), -4.5, 0.0, 2),
+            ("c".to_string(), 1.2, 0.0, 3),
+        ];
+        custom_float_sorter(&mut data);
+        assert_eq!(data, vec![
+            ("a".to_string(), 3.0, 0.0, 1),  // Largest number first
+            ("c".to_string(), 1.2, 0.0, 3),
+            ("b".to_string(), -4.5, 0.0, 2), // Smallest number last
+        ]);
     }
-    
-    fn vec_compare(va: &[f64], vb: &[f64]) -> bool {
-        (va.len() == vb.len()) && 
-         va.iter()
-           .zip(vb)
-           .all(|(a,b)| eq_with_nan_eq(*a,*b))
+
+  #[test]
+    fn test_negative_numbers_desc() {
+        let mut data = vec![
+            ("x".to_string(), -1.0, 0.0, 1),
+            ("y".to_string(), -5.0, 0.0, 2),
+            ("z".to_string(), -3.0, 0.0, 3),
+        ];
+        custom_float_sorter(&mut data);
+        assert_eq!(data, vec![
+            ("x".to_string(), -1.0, 0.0, 1), // -1.0 is largest
+            ("z".to_string(), -3.0, 0.0, 3),
+            ("y".to_string(), -5.0, 0.0, 2), // -5.0 is smallest
+        ]);
     }
 
     #[test]
-
-    fn test_float_sorter(){
-        use super::float_sorter;
-
-
-        
-        let  mut test_cases:[(Vec<f64>, Vec<f64>);7] = [( vec![f64::NAN,12.1,11.1,1.1],vec![12.1,11.1,1.1,f64::NAN]),
-        (vec![2.1,1.1,2.3,f64::NAN],vec![2.3,2.1,1.1,f64::NAN]),
-        (vec![f64::NAN,f64::NAN,9.1],vec![9.1,f64::NAN,f64::NAN]),
-        (vec![f64::INFINITY,1.12,f64::INFINITY,42.1],vec![42.1,1.12,f64::INFINITY,f64::INFINITY]),
-        (vec![1.1,1.4,1.5,12.1],vec![12.1,1.5,1.4,1.1]),
-        (vec![ f64::INFINITY,f64::INFINITY,2.13,5.3,f64::NAN,12.1,f64::INFINITY,5.6,f64::NAN,f64::NAN,8.32],
-            vec![12.1, 8.32, 5.6, 5.3, 2.13, f64::INFINITY, f64::INFINITY, f64::NAN, f64::INFINITY, f64::NAN, f64::INFINITY]
-        ),
-        (vec![1.1,-4.1,4.0,f64::NAN],vec![-4.1,4.0,1.1,f64::NAN])
+    fn test_nan_handling() {
+        let mut data = vec![
+            ("a".to_string(), f64::NAN, 0.0, 1),
+            ("b".to_string(), 2.0, 0.0, 2),
+            ("c".to_string(), -4.0, 0.0, 3),
+            ("d".to_string(), f64::NAN, 0.0, 4),
         ];
+        custom_float_sorter(&mut data);
 
-        for (test_case,expected_case) in &mut test_cases{
-
-            float_sorter(test_case);
-            assert!(vec_compare(test_case, expected_case),"testcase failed for {:?}=={:?}",expected_case,test_case)
-        }
-
+        // NaN values should be at the end
+        assert!(data[2].1.is_nan());
+        assert!(data[3].1.is_nan());
     }
-    
+
+  #[test]
+  fn test_infinity_handling() {
+    let mut data = vec![
+        ("a".to_string(), f64::INFINITY, 0.0, 1),
+        ("b".to_string(), -3.0, 0.0, 2),
+        ("c".to_string(), f64::NEG_INFINITY, 0.0, 3),
+    ];
+    custom_float_sorter(&mut data);
+    assert_eq!(data, vec![
+        ("a".to_string(), f64::INFINITY, 0.0, 1),  // ∞ first
+        ("b".to_string(), -3.0, 0.0, 2),           // Finite numbers next
+        ("c".to_string(), f64::NEG_INFINITY, 0.0, 3), // -∞ last
+    ]);
+  }
+
+  #[test]
+    fn test_mixed_nan_infinity_values() {
+        let mut data = vec![
+            ("a".to_string(), f64::INFINITY, 0.0, 1),
+            ("b".to_string(), 3.0, 0.0, 2),
+            ("c".to_string(), -f64::INFINITY, 0.0, 3),
+            ("d".to_string(), f64::NAN, 0.0, 4),
+            ("e".to_string(), -2.5, 0.0, 5),
+            ("f".to_string(), f64::NAN, 0.0, 6),
+        ];
+        custom_float_sorter(&mut data);
+        assert_eq!(data[0].1, f64::INFINITY);  // ∞ first
+        assert_eq!(data[1].1, 3.0);
+        assert_eq!(data[2].1, -2.5);
+        assert_eq!(data[3].1, -f64::INFINITY); // -∞ should be before NaN
+        assert!(data[4].1.is_nan());
+        assert!(data[5].1.is_nan());
+    }   
 }
