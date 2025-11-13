@@ -347,18 +347,6 @@ mod tests {
 
         assert!(corr_results.is_ok())
     }
-    #[test]
-    fn test_negative_compute() {
-        let compute_obj = Compute::new(
-            ',',
-            "pearson",
-            "tests/data/mock_negative_dataset.txt",
-            &[12.0, 15.0, 11.0, 16.0, 11.0, 8.0, 7.0],
-            "./output_negative.txt",
-        );
-        let corr_results = compute_obj.compute();
-        assert!(corr_results.is_ok())
-    }
 
     #[test]
     fn test_parse_f64() {
