@@ -149,11 +149,11 @@ impl<'a> Compute<'a> {
                                 .split(self.file_delimiter)
                                 .collect::<Vec<&str>>(),
                         );
-			if ty.x_vals.len() < 4 || ty.y_vals.len() < 4 {
-			    // minimum number of acceptable trait values for
-			    // computing the correlations
-			    continue;
-			}
+                        if ty.x_vals.len() < 4 || ty.y_vals.len() < 4 {
+                            // minimum number of acceptable trait values for
+                            // computing the correlations
+                            continue;
+                        }
 
                         let (key_name, parsed_x_val, parsed_y_val) =
                             (ty.row_name, ty.x_vals, ty.y_vals);
@@ -213,6 +213,51 @@ mod tests {
 
         assert_eq!(format!("{:.2}", corr_coeff), "1.00");
         assert_approx_eq!(p_val, 1.341575855, 2f64);
+    }
+
+    #[test]
+    fn test_pearson_negative_rho() {
+        let new_pearson = Pearson::new(3);
+        let (corr_coeff, p_val) =
+            new_pearson.correlate(&[1., 2., 3., 4., 5.], &[5., 4., 3., 2., 1.]);
+
+        assert_eq!(format!("{:.2}", corr_coeff), "-1.00");
+    }
+
+    #[test]
+    fn test_pearson_negative_rho_signs() {
+        // let new_pearson = Pearson::new(3);
+
+        // Each pair should produce a negative correlation
+        let test_cases = vec![
+            (vec![1., 2., 3., 4., 5.], vec![5., 4., 3., 2., 1.]), // perfect -1.0
+            (vec![1., 2., 3., 4., 5.], vec![5., 4.5, 3.5, 3.0, 2.5]), // roughly -0.9
+            (vec![1., 2., 3., 4., 5.], vec![4.5, 4.0, 3.8, 3.5, 3.0]), // small negative ~ -0.3
+        ];
+
+        for (x, y) in test_cases {
+            let new_pearson = Pearson::new(3);
+            let new_spearman = Spearman::new(3);
+            let (corr_coeff, _p_val) = new_pearson.correlate(&x, &y); // pearson correlation
+            let (s_rho, p_val) = new_spearman.correlate(&x, &y);
+            let formatted = format!("{:.2}", corr_coeff);
+            let s_formatted = format!("{:.2}", s_rho);
+
+            // Assert the sign is actually negative in the formatted string
+            assert!(
+                formatted.starts_with('-'),
+                "Expected negative correlation, got formatted value `{}` (raw {})",
+                formatted,
+                corr_coeff
+            );
+
+            assert!(
+                formatted.starts_with('-'),
+                "Expected negative correlation, got formatted value `{}` (raw {})",
+                s_formatted,
+                s_rho
+            );
+        }
     }
 
     #[test]
@@ -304,7 +349,6 @@ mod tests {
     }
 
     #[test]
-
     fn test_parse_f64() {
         let data = "9. ,5. ,0. ,7. ,6. ,1. ,5. ,0.\n";
 
