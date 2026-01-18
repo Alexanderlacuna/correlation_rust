@@ -25,3 +25,8 @@ criterion = "0.3"
 name = "benchmark"
 harness = false
 
+
+
+[[bin]]
+name = "correlation_rust"
+test = true
