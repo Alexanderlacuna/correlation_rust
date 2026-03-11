@@ -1,8 +1,7 @@
 use serde::Deserialize;
 use std::io::Read;
-#[derive(Debug, Deserialize, PartialEq)]
-//#[serde(rename_all = "PascalCase")]
 
+#[derive(Debug, Deserialize, PartialEq)]
 pub struct JsonData {
     pub file_path: String,
     pub x_vals: Vec<f64>,
@@ -10,6 +9,8 @@ pub struct JsonData {
     pub method: String,
     pub file_delimiter: char,
     pub output_file: String,
+    #[serde(default)]
+    pub use_lmdb: bool, // use LMDB instead of CSV
 }
 
 impl JsonData {
@@ -169,6 +170,7 @@ mod tests {
             sample_values: String::from("bxd1"),
             method: String::from("pearson"),
             file_delimiter: ',',
+            use_lmdb: false,
         };
 
         assert_eq!(k, json_struct)

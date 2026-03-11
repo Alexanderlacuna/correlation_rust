@@ -1,8 +1,8 @@
-use std::cmp::Ordering;
-
+use crate::lmdb_reader::LmdbReader;
 use crate::parser::parse_rows_with_names;
 use crate::reader::BufferReader;
 use crate::sorter::sort_write_to_file;
+use std::cmp::Ordering;
 
 //way to parse the args
 use rgsl::{
@@ -135,6 +135,65 @@ impl<'a> Compute<'a> {
     pub fn compute(&self) -> std::io::Result<String> {
         let mut corr_results: Vec<(String, f64, f64, i32)> = Vec::new();
 
+        // NEW: Check if path is LMDB directory
+        if std::path::Path::new(self.dataset_path).is_dir() {
+            // Use LMDB reader
+            self.compute_from_lmdb(&mut corr_results)?;
+        } else {
+            // Use CSV reader (existing code)
+            self.compute_from_csv(&mut corr_results)?;
+        }
+
+        sort_write_to_file(String::from(self.output_file), corr_results)
+    }
+
+    // NEW: Compute correlations from LMDB
+    fn compute_from_lmdb(
+        &self,
+        corr_results: &mut Vec<(String, f64, f64, i32)>,
+    ) -> std::io::Result<()> {
+        let reader = LmdbReader::new(self.dataset_path)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+        let mut iter = reader
+            .iter_traits()
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+        while let Some((trait_name, y_vals)) = iter.next() {
+            // Filter out NaN values and align with x_vals
+            let mut parsed_x_vals = Vec::new();
+            let mut parsed_y_vals = Vec::new();
+
+            for (i, &x_val) in self.x_vals.iter().enumerate() {
+                if let Some(&y_val) = y_vals.get(i) {
+                    if !y_val.is_nan() {
+                        parsed_x_vals.push(x_val);
+                        parsed_y_vals.push(y_val);
+                    }
+                }
+            }
+
+            if parsed_x_vals.len() < 4 || parsed_y_vals.len() < 4 {
+                continue;
+            }
+
+            let (rho, p_val) = if self.method == CorrelationMethod::Pearson {
+                Pearson::new(parsed_x_vals.len()).correlate(&parsed_x_vals, &parsed_y_vals)
+            } else {
+                Spearman::new(parsed_x_vals.len()).correlate(&parsed_x_vals, &parsed_y_vals)
+            };
+
+            corr_results.push((trait_name, rho, p_val, parsed_x_vals.len() as i32));
+        }
+
+        Ok(())
+    }
+
+    // REFACTORED: Existing CSV logic extracted to separate method
+    fn compute_from_csv(
+        &self,
+        corr_results: &mut Vec<(String, f64, f64, i32)>,
+    ) -> std::io::Result<()> {
         let reader = BufferReader::new(self.dataset_path);
 
         match reader {
@@ -150,33 +209,27 @@ impl<'a> Compute<'a> {
                                 .collect::<Vec<&str>>(),
                         );
                         if ty.x_vals.len() < 4 || ty.y_vals.len() < 4 {
-                            // minimum number of acceptable trait values for
-                            // computing the correlations
                             continue;
                         }
 
                         let (key_name, parsed_x_val, parsed_y_val) =
                             (ty.row_name, ty.x_vals, ty.y_vals);
 
-                        if self.method == CorrelationMethod::Pearson {
-                            let (rho, p_val) = Pearson::new(parsed_x_val.len())
-                                .correlate(&parsed_x_val, &parsed_y_val);
-
-                            corr_results.push((key_name, rho, p_val, parsed_x_val.len() as i32));
+                        let (rho, p_val) = if self.method == CorrelationMethod::Pearson {
+                            Pearson::new(parsed_x_val.len()).correlate(&parsed_x_val, &parsed_y_val)
                         } else {
-                            let (rho, p_val) = Spearman::new(parsed_x_val.len())
-                                .correlate(&parsed_x_val, &parsed_y_val);
+                            Spearman::new(parsed_x_val.len())
+                                .correlate(&parsed_x_val, &parsed_y_val)
+                        };
 
-                            corr_results.push((key_name, rho, p_val, parsed_x_val.len() as i32));
-                        }
+                        corr_results.push((key_name, rho, p_val, parsed_x_val.len() as i32));
                     }
                 }
             }
-
-            Err(err) => panic!("an error ocurrexxxxxxxxxxxxxxd {:?}", err),
+            Err(err) => panic!("an error occurred {:?}", err),
         }
 
-        sort_write_to_file(String::from(self.output_file), corr_results)
+        Ok(())
     }
 }
 #[derive(PartialEq, Debug)]
