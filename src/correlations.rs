@@ -88,6 +88,9 @@ impl Correlation for Spearman {
 #[derive(PartialEq, Debug)]
 pub struct Compute<'a> {
     x_vals: &'a [f64],
+    /// Optional strain names corresponding to x_vals indices.
+    /// Used for LMDB mode to extract correct columns from matrix.
+    strains: Option<&'a [String]>,
     dataset_path: &'a str,
     method: CorrelationMethod,
     file_delimiter: char,
@@ -102,8 +105,18 @@ impl<'a> Compute<'a> {
         x_vals: &'a [f64],
         output_file: &'a str,
     ) -> Self {
-        //capitalize method/same cases
+        Self::new_with_strains(file_delimeter, method, dataset_path, x_vals, output_file, None)
+    }
 
+    /// Create Compute with strain names for LMDB column alignment.
+    pub fn new_with_strains(
+        file_delimeter: char,
+        method: &str,
+        dataset_path: &'a str,
+        x_vals: &'a [f64],
+        output_file: &'a str,
+        strains: Option<&'a [String]>,
+    ) -> Self {
         let method = match method.to_lowercase().as_str() {
             "pearson" => CorrelationMethod::Pearson,
             "spearman" => CorrelationMethod::Spearman,
@@ -112,6 +125,7 @@ impl<'a> Compute<'a> {
 
         Self {
             x_vals,
+            strains,
             dataset_path,
             method,
             output_file,
@@ -147,7 +161,8 @@ impl<'a> Compute<'a> {
         sort_write_to_file(String::from(self.output_file), corr_results)
     }
 
-    // NEW: Compute correlations from LMDB
+    // Compute correlations from LMDB with strain-based column extraction.
+    // If strains are specified, extracts only those columns. Otherwise uses all columns.
     fn compute_from_lmdb(
         &self,
         corr_results: &mut Vec<(String, f64, f64, i32)>,
@@ -155,21 +170,67 @@ impl<'a> Compute<'a> {
         let reader = LmdbReader::new(self.dataset_path)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
+        // Read metadata to get strain order
+        let metadata = reader
+            .read_metadata()
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+
+        // Build strain name -> column index mapping
+        let strain_to_idx: std::collections::HashMap<&str, usize> = metadata
+            .strains
+            .iter()
+            .enumerate()
+            .map(|(i, s)| (s.as_str(), i))
+            .collect();
+
+        // Determine which columns to extract based on strains
+        let column_indices: Vec<usize> = match self.strains {
+            Some(strains) => {
+                // Map strain names to their column indices
+                let indices: Vec<usize> = strains
+                    .iter()
+                    .filter_map(|s| strain_to_idx.get(s.as_str()).copied())
+                    .collect();
+
+                // Validate all strains were found
+                if indices.len() != strains.len() {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        format!(
+                            "Strain mismatch: requested {} strains, found {}. "
+                            + "Some strains may not exist in the LMDB dataset.",
+                            strains.len(),
+                            indices.len()
+                        ),
+                    ));
+                }
+                indices
+            }
+            None => {
+                // No strains specified - use all columns (legacy mode)
+                (0..metadata.columns).collect()
+            }
+        };
+
         let mut iter = reader
             .iter_traits()
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
 
-        while let Some((trait_name, y_vals)) = iter.next() {
+        while let Some((trait_name, full_row)) = iter.next() {
+            // Extract only the columns we need
+            let y_vals: Vec<f64> = column_indices
+                .iter()
+                .map(|&idx| full_row[idx])
+                .collect();
+
             // Filter out NaN values and align with x_vals
             let mut parsed_x_vals = Vec::new();
             let mut parsed_y_vals = Vec::new();
 
-            for (i, &x_val) in self.x_vals.iter().enumerate() {
-                if let Some(&y_val) = y_vals.get(i) {
-                    if !y_val.is_nan() {
-                        parsed_x_vals.push(x_val);
-                        parsed_y_vals.push(y_val);
-                    }
+            for (i, &y_val) in y_vals.iter().enumerate() {
+                if i < self.x_vals.len() && !y_val.is_nan() {
+                    parsed_x_vals.push(self.x_vals[i]);
+                    parsed_y_vals.push(y_val);
                 }
             }
 
@@ -348,6 +409,7 @@ mod tests {
                 Compute {
                     file_delimiter: ',',
                     x_vals: &[1., 3., 4., 5., 6., 7., 7.],
+                    strains: None,
                     dataset_path: "./notes.txt",
                     output_file: "/output.txt",
                     method: CorrelationMethod::Spearman
@@ -355,6 +417,7 @@ mod tests {
                 Compute {
                     file_delimiter: ',',
                     x_vals: &[1., 3., 4., 5., 6., 7., 7.],
+                    strains: None,
                     dataset_path: "./note2.txt",
                     output_file: "/output.txt",
                     method: CorrelationMethod::Pearson
@@ -379,6 +442,7 @@ mod tests {
             Compute {
                 file_delimiter: ',',
                 x_vals: &[1.2, 1.4, 1.5],
+                strains: None,
                 dataset_path: "/notes.txt",
                 method: CorrelationMethod::Pearson,
                 output_file: "/output.txt"
