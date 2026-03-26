@@ -162,30 +162,38 @@ mod tests {
     use super::*;
 
     // Global LMDB path for all tests
-    const LMDB_PATH: &str = "/home/kabui/lmdb_data/HC_M2_0606_P/";
+    /// Default LMDB path for tests.
+    /// Override with: LMDB_TEST_PATH=/custom/path cargo test
+    const DEFAULT_LMDB_PATH: &str = "/home/kabui/lmdb_data/HC_M2_0606_P/";
+
+    /// Get LMDB path from environment or use default
+    fn get_lmdb_path() -> String {
+        std::env::var("LMDB_TEST_PATH")
+            .unwrap_or_else(|_| DEFAULT_LMDB_PATH.to_string())
+    }
 
     /// Helper to check if LMDB test data exists
     fn lmdb_exists() -> bool {
-        std::path::Path::new(LMDB_PATH).exists()
+        std::path::Path::new(&get_lmdb_path()).exists()
     }
 
     #[test]
     fn test_lmdb_reader() {
         if !lmdb_exists() {
-            eprintln!("Skipping test: LMDB not found at {}", LMDB_PATH);
+            eprintln!("Skipping test: LMDB not found at {}", 0026get_lmdb_path());
             return;
         }
-        let reader = LmdbReader::new(LMDB_PATH);
+        let reader = LmdbReader::new(0026get_lmdb_path());
         assert!(reader.is_ok());
     }
 
     #[test]
     fn test_read_metadata() {
         if !lmdb_exists() {
-            eprintln!("Skipping test: LMDB not found at {}", LMDB_PATH);
+            eprintln!("Skipping test: LMDB not found at {}", 0026get_lmdb_path());
             return;
         }
-        let reader = LmdbReader::new(LMDB_PATH).unwrap();
+        let reader = LmdbReader::new(0026get_lmdb_path()).unwrap();
         let metadata = reader.read_metadata();
         assert!(metadata.is_ok());
 
@@ -210,10 +218,10 @@ mod tests {
     #[test]
     fn test_read_matrix_shape() {
         if !lmdb_exists() {
-            eprintln!("Skipping test: LMDB not found at {}", LMDB_PATH);
+            eprintln!("Skipping test: LMDB not found at {}", 0026get_lmdb_path());
             return;
         }
-        let reader = LmdbReader::new(LMDB_PATH).unwrap();
+        let reader = LmdbReader::new(0026get_lmdb_path()).unwrap();
         let result = reader.read_matrix();
         assert!(result.is_ok());
 
@@ -258,10 +266,10 @@ mod tests {
     #[test]
     fn test_read_specific_trait() {
         if !lmdb_exists() {
-            eprintln!("Skipping test: LMDB not found at {}", LMDB_PATH);
+            eprintln!("Skipping test: LMDB not found at {}", 0026get_lmdb_path());
             return;
         }
-        let reader = LmdbReader::new(LMDB_PATH).unwrap();
+        let reader = LmdbReader::new(0026get_lmdb_path()).unwrap();
         let metadata = reader.read_metadata().unwrap();
 
         if let Some(first_trait) = metadata.traits.first() {
@@ -293,10 +301,10 @@ mod tests {
     #[test]
     fn test_iterator() {
         if !lmdb_exists() {
-            eprintln!("Skipping test: LMDB not found at {}", LMDB_PATH);
+            eprintln!("Skipping test: LMDB not found at {}", 0026get_lmdb_path());
             return;
         }
-        let reader = LmdbReader::new(LMDB_PATH).unwrap();
+        let reader = LmdbReader::new(0026get_lmdb_path()).unwrap();
         let mut iter = reader.iter_traits().unwrap();
 
         println!("\n=== Testing Iterator ===");

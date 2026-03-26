@@ -165,22 +165,46 @@ Traits with fewer than 4 valid (non-NaN) samples are skipped.
 
 ## Testing
 
-Run unit tests (no external dependencies):
+### Unit Tests (No External Dependencies)
 
 ```bash
 cargo test test_compute_with_strains
 cargo test test_compute_without_strains
+cargo test test_analysis_with_strains
 ```
 
-Run integration tests (requires GSL and LMDB):
+### Integration Tests (Requires GSL and LMDB)
+
+**Default path:** Uses `/home/kabui/lmdb_data/HC_M2_0606_P/`
 
 ```bash
-# Check if LMDB exists
+# Check if LMDB exists at default path
 ls /home/kabui/lmdb_data/HC_M2_0606_P/
 
-# Run ignored tests
+# Run all ignored tests
 cargo test -- --ignored
+
+# Run specific LMDB test
+cargo test test_lmdb_correlation_with_strains -- --ignored --nocapture
 ```
+
+**Custom LMDB path:** Use `LMDB_TEST_PATH` environment variable
+
+```bash
+# Run tests with custom LMDB path
+LMDB_TEST_PATH=/custom/lmdb/path/ cargo test -- --ignored
+
+# Run specific test with custom path
+LMDB_TEST_PATH=/data/my_lmdb/ cargo test test_lmdb_correlation_with_strains -- --ignored
+
+# Example with full dataset
+LMDB_TEST_PATH=/var/lmdb/GTEx_Liver/ cargo test test_lmdb_correlation_all_strains -- --ignored --nocapture
+```
+
+**Test data requirements:**
+- Valid LMDB directory with `probeset_matrix` and `probeset_metadata` keys
+- Metadata must include `strains` array
+- At least 4 strains recommended for meaningful correlation tests
 
 ## Architecture
 

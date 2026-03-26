@@ -579,14 +579,16 @@ mod tests {
     // Run the following manual test when GSL library is available:
     //
     // cargo test test_lmdb_correlation -- --nocapture --ignored
+    // Or with custom path: LMDB_TEST_PATH=/custom/path cargo test test_lmdb_correlation -- --ignored
     #[test]
     #[ignore = "requires GSL library and LMDB dataset"]
     fn test_lmdb_correlation_with_strains() {
         use std::path::Path;
 
-        let lmdb_path = "/home/kabui/lmdb_data/HC_M2_0606_P/";
-        if !Path::new(lmdb_path).exists() {
-            panic!("LMDB test data not found at {}", lmdb_path);
+        let lmdb_path = std::env::var("LMDB_TEST_PATH")
+            .unwrap_or_else(|_| "/home/kabui/lmdb_data/HC_M2_0606_P/".to_string());
+        if !Path::new(&lmdb_path).exists() {
+            panic!("LMDB test data not found at {}. Set LMDB_TEST_PATH env var.", lmdb_path);
         }
 
         // Example: correlate with first 6 strains only
@@ -621,9 +623,10 @@ mod tests {
     fn test_lmdb_correlation_all_strains() {
         use std::path::Path;
 
-        let lmdb_path = "/home/kabui/lmdb_data/HC_M2_0606_P/";
-        if !Path::new(lmdb_path).exists() {
-            panic!("LMDB test data not found at {}", lmdb_path);
+        let lmdb_path = std::env::var("LMDB_TEST_PATH")
+            .unwrap_or_else(|_| "/home/kabui/lmdb_data/HC_M2_0606_P/".to_string());
+        if !Path::new(&lmdb_path).exists() {
+            panic!("LMDB test data not found at {}. Set LMDB_TEST_PATH env var.", lmdb_path);
         }
 
         // Without strains - should use all columns (backward compatibility)
