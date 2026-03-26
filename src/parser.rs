@@ -13,6 +13,13 @@ pub struct JsonData {
     /// Required for LMDB mode to extract correct columns.
     #[serde(default)]
     pub strains: Option<Vec<String>>,
+    /// Enable parallel processing with rayon. Default: true
+    #[serde(default = "default_parallel")]
+    pub parallel: bool,
+}
+
+fn default_parallel() -> bool {
+    true
 }
 
 impl JsonData {

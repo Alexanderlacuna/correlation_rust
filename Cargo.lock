@@ -107,6 +107,7 @@ dependencies = [
  "assert_approx_eq",
  "criterion",
  "lmdb",
+ "rayon",
  "serde",
  "serde_json",
 ]

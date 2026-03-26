@@ -18,24 +18,27 @@ impl Analysis {
         let computation_status = match json_results.strains {
             Some(ref strains) => {
                 // LMDB mode with strain-based column extraction
-                correlations::Compute::new_with_strains(
+                correlations::Compute::new_with_strains_parallel(
                     json_results.file_delimiter,
                     &json_results.method,
                     &json_results.file_path,
                     &x_vals,
                     &json_results.output_file,
                     Some(strains.as_slice()),
+                    json_results.parallel,
                 )
                 .compute()
             }
             None => {
                 // Legacy CSV mode (or LMDB without strain specification)
-                correlations::Compute::new(
+                correlations::Compute::new_with_strains_parallel(
                     json_results.file_delimiter,
                     &json_results.method,
                     &json_results.file_path,
                     &x_vals,
                     &json_results.output_file,
+                    None,
+                    json_results.parallel,
                 )
                 .compute()
             }
@@ -72,7 +75,8 @@ mod tests {
                 "sample_values": "test",
                 "method": "pearson",
                 "file_delimiter": ",",
-                "output_file": "/tmp/test_output.txt"
+                "output_file": "/tmp/test_output.txt",
+                "parallel": false
             }"#
             )
             .unwrap();
@@ -83,6 +87,7 @@ mod tests {
         assert!(json_data.strains.is_some());
         assert_eq!(json_data.strains.as_ref().unwrap().len(), 3);
         assert_eq!(json_data.strains.as_ref().unwrap()[0], "BXD1");
+        assert_eq!(json_data.parallel, false);
 
         // Clean up
         std::fs::remove_file(json_path).ok();

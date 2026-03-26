@@ -84,6 +84,8 @@ impl Correlation for Spearman {
     }
 }
 
+use rayon::prelude::*;
+
 #[allow(dead_code)]
 #[derive(PartialEq, Debug)]
 pub struct Compute<'a> {
@@ -95,6 +97,8 @@ pub struct Compute<'a> {
     method: CorrelationMethod,
     file_delimiter: char,
     output_file: &'a str,
+    /// Enable parallel processing with rayon
+    parallel: bool,
 }
 #[allow(dead_code)]
 impl<'a> Compute<'a> {
@@ -105,7 +109,7 @@ impl<'a> Compute<'a> {
         x_vals: &'a [f64],
         output_file: &'a str,
     ) -> Self {
-        Self::new_with_strains(file_delimeter, method, dataset_path, x_vals, output_file, None)
+        Self::new_with_strains_parallel(file_delimeter, method, dataset_path, x_vals, output_file, None, true)
     }
 
     /// Create Compute with strain names for LMDB column alignment.
@@ -116,6 +120,19 @@ impl<'a> Compute<'a> {
         x_vals: &'a [f64],
         output_file: &'a str,
         strains: Option<&'a [String]>,
+    ) -> Self {
+        Self::new_with_strains_parallel(file_delimeter, method, dataset_path, x_vals, output_file, strains, true)
+    }
+
+    /// Create Compute with full control over parallelization.
+    pub fn new_with_strains_parallel(
+        file_delimeter: char,
+        method: &str,
+        dataset_path: &'a str,
+        x_vals: &'a [f64],
+        output_file: &'a str,
+        strains: Option<&'a [String]>,
+        parallel: bool,
     ) -> Self {
         let method = match method.to_lowercase().as_str() {
             "pearson" => CorrelationMethod::Pearson,
@@ -130,6 +147,7 @@ impl<'a> Compute<'a> {
             method,
             output_file,
             file_delimiter: file_delimeter,
+            parallel,
         }
     }
 
@@ -228,39 +246,81 @@ impl<'a> Compute<'a> {
             }
         };
 
-        let mut iter = reader
+        // Read all traits into memory for parallel processing
+        let traits_data: Vec<(String, Vec<f64>)> = reader
             .iter_traits()
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?;
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?
+            .collect();
 
-        while let Some((trait_name, full_row)) = iter.next() {
-            // Extract only the columns we need
-            let y_vals: Vec<f64> = column_indices
-                .iter()
-                .map(|&idx| full_row[idx])
+        if self.parallel {
+            // Parallel processing with rayon
+            let results: Vec<(String, f64, f64, i32)> = traits_data
+                .par_iter()
+                .filter_map(|(trait_name, full_row)| {
+                    // Extract only the columns we need
+                    let y_vals: Vec<f64> = column_indices
+                        .iter()
+                        .map(|&idx| full_row[idx])
+                        .collect();
+
+                    // Filter out NaN values and align with x_vals
+                    let mut parsed_x_vals = Vec::new();
+                    let mut parsed_y_vals = Vec::new();
+
+                    for (i, &y_val) in y_vals.iter().enumerate() {
+                        if i < self.x_vals.len() && !y_val.is_nan() {
+                            parsed_x_vals.push(self.x_vals[i]);
+                            parsed_y_vals.push(y_val);
+                        }
+                    }
+
+                    if parsed_x_vals.len() < 4 || parsed_y_vals.len() < 4 {
+                        return None;
+                    }
+
+                    let (rho, p_val) = if self.method == CorrelationMethod::Pearson {
+                        Pearson::new(parsed_x_vals.len()).correlate(&parsed_x_vals, &parsed_y_vals)
+                    } else {
+                        Spearman::new(parsed_x_vals.len()).correlate(&parsed_x_vals, &parsed_y_vals)
+                    };
+
+                    Some((trait_name.clone(), rho, p_val, parsed_x_vals.len() as i32))
+                })
                 .collect();
 
-            // Filter out NaN values and align with x_vals
-            let mut parsed_x_vals = Vec::new();
-            let mut parsed_y_vals = Vec::new();
+            corr_results.extend(results);
+        } else {
+            // Sequential processing
+            for (trait_name, full_row) in traits_data {
+                // Extract only the columns we need
+                let y_vals: Vec<f64> = column_indices
+                    .iter()
+                    .map(|&idx| full_row[idx])
+                    .collect();
 
-            for (i, &y_val) in y_vals.iter().enumerate() {
-                if i < self.x_vals.len() && !y_val.is_nan() {
-                    parsed_x_vals.push(self.x_vals[i]);
-                    parsed_y_vals.push(y_val);
+                // Filter out NaN values and align with x_vals
+                let mut parsed_x_vals = Vec::new();
+                let mut parsed_y_vals = Vec::new();
+
+                for (i, &y_val) in y_vals.iter().enumerate() {
+                    if i < self.x_vals.len() && !y_val.is_nan() {
+                        parsed_x_vals.push(self.x_vals[i]);
+                        parsed_y_vals.push(y_val);
+                    }
                 }
+
+                if parsed_x_vals.len() < 4 || parsed_y_vals.len() < 4 {
+                    continue;
+                }
+
+                let (rho, p_val) = if self.method == CorrelationMethod::Pearson {
+                    Pearson::new(parsed_x_vals.len()).correlate(&parsed_x_vals, &parsed_y_vals)
+                } else {
+                    Spearman::new(parsed_x_vals.len()).correlate(&parsed_x_vals, &parsed_y_vals)
+                };
+
+                corr_results.push((trait_name, rho, p_val, parsed_x_vals.len() as i32));
             }
-
-            if parsed_x_vals.len() < 4 || parsed_y_vals.len() < 4 {
-                continue;
-            }
-
-            let (rho, p_val) = if self.method == CorrelationMethod::Pearson {
-                Pearson::new(parsed_x_vals.len()).correlate(&parsed_x_vals, &parsed_y_vals)
-            } else {
-                Spearman::new(parsed_x_vals.len()).correlate(&parsed_x_vals, &parsed_y_vals)
-            };
-
-            corr_results.push((trait_name, rho, p_val, parsed_x_vals.len() as i32));
         }
 
         Ok(())
@@ -428,7 +488,8 @@ mod tests {
                     strains: None,
                     dataset_path: "./notes.txt",
                     output_file: "/output.txt",
-                    method: CorrelationMethod::Spearman
+                    method: CorrelationMethod::Spearman,
+                    parallel: true,
                 },
                 Compute {
                     file_delimiter: ',',
@@ -436,7 +497,8 @@ mod tests {
                     strains: None,
                     dataset_path: "./note2.txt",
                     output_file: "/output.txt",
-                    method: CorrelationMethod::Pearson
+                    method: CorrelationMethod::Pearson,
+                    parallel: true,
                 }
             ],
             new_compute
@@ -461,7 +523,8 @@ mod tests {
                 strains: None,
                 dataset_path: "/notes.txt",
                 method: CorrelationMethod::Pearson,
-                output_file: "/output.txt"
+                output_file: "/output.txt",
+                parallel: true,
             }
         )
     }
