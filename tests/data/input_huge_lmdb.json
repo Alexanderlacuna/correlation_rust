@@ -1,0 +1,16 @@
+{
+  "_comment": "HUGE LMDB test - 2 million traits - PARALLEL mode",
+  "file_path": "/tmp/huge_lmdb",
+  "x_vals": [
+	25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655,
+	87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703],
+  "strains": [
+	"C57BL/6J", "DBA/2J", "A/J", "AKR/J", "BALB/cJ", "C3H/HeJ",
+	"129S1/SvImJ", "NOD/ShiLtJ", "NZO/HlLtJ", "CAST/EiJ",
+	"PWK/PhJ", "PWD/PhJ"],
+  "sample_values": "test_trait",
+  "method": "pearson",
+  "file_delimiter": ",",
+  "output_file": "/tmp/huge_output_parallel.txt",
+  "parallel": true
+}
