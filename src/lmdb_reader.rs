@@ -162,7 +162,7 @@ mod tests {
     use super::*;
 
     // Global LMDB path for all tests
-    const LMDB_PATH: &str = "/home/kabui/lmdb_data/GTEx_Liver_0414/GTEx_Liver_0414/";
+    const LMDB_PATH: &str = "/home/kabui/lmdb_data/HC_M2_0606_P/";
 
     /// Helper to check if LMDB test data exists
     fn lmdb_exists() -> bool {

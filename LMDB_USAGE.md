@@ -176,7 +176,7 @@ Run integration tests (requires GSL and LMDB):
 
 ```bash
 # Check if LMDB exists
-ls /home/kabui/lmdb_data/GTEx_Liver_0414/
+ls /home/kabui/lmdb_data/HC_M2_0606_P/
 
 # Run ignored tests
 cargo test -- --ignored

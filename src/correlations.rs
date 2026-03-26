@@ -197,8 +197,8 @@ impl<'a> Compute<'a> {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidInput,
                         format!(
-                            "Strain mismatch: requested {} strains, found {}. "
-                            + "Some strains may not exist in the LMDB dataset.",
+                            "Strain mismatch: requested {} strains, found {}. \
+                            Some strains may not exist in the LMDB dataset.",
                             strains.len(),
                             indices.len()
                         ),
@@ -584,7 +584,7 @@ mod tests {
     fn test_lmdb_correlation_with_strains() {
         use std::path::Path;
 
-        let lmdb_path = "/home/kabui/lmdb_data/GTEx_Liver_0414/GTEx_Liver_0414/";
+        let lmdb_path = "/home/kabui/lmdb_data/HC_M2_0606_P/";
         if !Path::new(lmdb_path).exists() {
             panic!("LMDB test data not found at {}", lmdb_path);
         }
@@ -621,7 +621,7 @@ mod tests {
     fn test_lmdb_correlation_all_strains() {
         use std::path::Path;
 
-        let lmdb_path = "/home/kabui/lmdb_data/GTEx_Liver_0414/GTEx_Liver_0414/";
+        let lmdb_path = "/home/kabui/lmdb_data/HC_M2_0606_P/";
         if !Path::new(lmdb_path).exists() {
             panic!("LMDB test data not found at {}", lmdb_path);
         }
