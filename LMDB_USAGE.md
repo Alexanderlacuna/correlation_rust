@@ -38,7 +38,7 @@ Use this format when you have an LMDB dataset and want to correlate with specifi
 {
   "file_path": "/path/to/lmdb/dataset/",
   "x_vals": [1.2, 3.4, 5.6, 7.8],
-  "strains": ["BXD1", "BXD2", "BXD5", "BXD8"],
+  "strains": ["1", "2", "5", "6"],
   "sample_values": "input_trait_name",
   "method": "pearson",
   "file_delimiter": ",",
@@ -102,7 +102,7 @@ Create a file `input.json`:
 {
   "file_path": "/var/lmdb_data/HC_M2_0606_P/",
   "x_vals": [5.2, 7.1, 3.8, 9.4],
-  "strains": ["BXD1", "BXD2", "BXD5", "BXD8"],
+  "strains": ["1", "2", "5", "6"],
   "sample_values": "my_trait",
   "method": "pearson",
   "file_delimiter": ",",
@@ -154,7 +154,7 @@ from gn3.computations.rust_correlation import run_correlation
 results = run_correlation(
     dataset_or_path="/var/lmdb_data/HC_M2_0606_P/",
     trait_vals=[5.2, 7.1, 3.8, 9.4],
-    strains=["BXD1", "BXD2", "BXD5", "BXD8"],
+    strains=["1", "2", "5", "6"],
     method="pearson",
     delimiter=",",
     tmpdir="/tmp"
