@@ -1,14 +1,12 @@
 {
-  "_comment": "Use strain NAMES from LMDB metadata (not IDs). Check available strains with: python3 check_strains.py /home/kabui/lmdb_data/HC_M2_0606_P/",
+  "_comment": "Use strain NAMES from LMDB. Run: python3 check_strains.py /home/kabui/lmdb_data/HC_M2_0606_P/",
   "file_path": "/home/kabui/lmdb_data/HC_M2_0606_P",
   "x_vals": [
-    25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824,
-    6.72478, 5.72373, 73.47078, 63.74703
-  ],
+	25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655,
+	87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703],
   "strains": [
-    "C57BL/6J", "DBA/2J", "BXD1", "BXD2", "BXD5", "BXD6",
-    "BXD8", "BXD9", "BXD11", "BXD12", "BXD14", "BXD15"
-  ],
+	"BXD11", "BXD12", "BXD45", "BXD48", "BXD50", "BXD51",
+	"BXD55", "B6D2F1", "D2B6F1", "PWK/PhJ", "C57BL/6J", "DBA/2J"],
   "sample_values": "bxd1",
   "method": "pearson",
   "file_delimiter": ",",
