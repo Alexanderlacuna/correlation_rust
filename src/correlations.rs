@@ -532,4 +532,115 @@ mod tests {
 
         assert_eq!(new_vec, vec![(1.2, 1.0), (1.3, 0.5)])
     }
+
+    #[test]
+    fn test_compute_with_strains() {
+        let x_vals = [1.0, 2.0, 3.0];
+        let strains = vec![
+            String::from("strain_a"),
+            String::from("strain_b"),
+            String::from("strain_c"),
+        ];
+
+        let compute = Compute::new_with_strains(
+            ',',
+            "pearson",
+            "/path/to/lmdb",
+            &x_vals,
+            "/output.txt",
+            Some(&strains),
+        );
+
+        assert_eq!(compute.x_vals, &[1.0, 2.0, 3.0]);
+        assert_eq!(compute.strains, Some(&strains[..]));
+        assert_eq!(compute.dataset_path, "/path/to/lmdb");
+        assert_eq!(compute.method, CorrelationMethod::Pearson);
+    }
+
+    #[test]
+    fn test_compute_without_strains() {
+        let x_vals = [1.0, 2.0, 3.0];
+
+        let compute = Compute::new(
+            ',',
+            "spearman",
+            "/path/to/file.txt",
+            &x_vals,
+            "/output.txt",
+        );
+
+        assert_eq!(compute.x_vals, &[1.0, 2.0, 3.0]);
+        assert_eq!(compute.strains, None); // No strains for CSV mode
+        assert_eq!(compute.dataset_path, "/path/to/file.txt");
+        assert_eq!(compute.method, CorrelationMethod::Spearman);
+    }
+
+    // Note: Full LMDB integration tests require actual LMDB files.
+    // Run the following manual test when GSL library is available:
+    //
+    // cargo test test_lmdb_correlation -- --nocapture --ignored
+    #[test]
+    #[ignore = "requires GSL library and LMDB dataset"]
+    fn test_lmdb_correlation_with_strains() {
+        use std::path::Path;
+
+        let lmdb_path = "/home/kabui/lmdb_data/GTEx_Liver_0414/GTEx_Liver_0414/";
+        if !Path::new(lmdb_path).exists() {
+            panic!("LMDB test data not found at {}", lmdb_path);
+        }
+
+        // Example: correlate with first 6 strains only
+        let x_vals = vec![25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655];
+        let strains = vec![
+            String::from("1_100_15"),
+            String::from("1_101_15"),
+            String::from("1_102_15"),
+            String::from("1_103_15"),
+            String::from("1_104_15"),
+            String::from("1_105_15"),
+        ];
+
+        let compute = Compute::new_with_strains(
+            ',',
+            "pearson",
+            lmdb_path,
+            &x_vals,
+            "/tmp/test_output.txt",
+            Some(&strains),
+        );
+
+        let result = compute.compute();
+        assert!(result.is_ok(), "LMDB correlation failed: {:?}", result);
+
+        // Verify output file was created
+        assert!(Path::new("/tmp/test_output.txt").exists());
+    }
+
+    #[test]
+    #[ignore = "requires GSL library and LMDB dataset"]
+    fn test_lmdb_correlation_all_strains() {
+        use std::path::Path;
+
+        let lmdb_path = "/home/kabui/lmdb_data/GTEx_Liver_0414/GTEx_Liver_0414/";
+        if !Path::new(lmdb_path).exists() {
+            panic!("LMDB test data not found at {}", lmdb_path);
+        }
+
+        // Without strains - should use all columns (backward compatibility)
+        let x_vals = vec![
+            25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824,
+            6.72478, 5.72373, 73.47078, 63.74703,
+        ];
+
+        let compute = Compute::new(
+            ',',
+            "pearson",
+            lmdb_path,
+            &x_vals,
+            "/tmp/test_output_all.txt",
+        );
+
+        let result = compute.compute();
+        assert!(result.is_ok(), "LMDB correlation failed: {:?}", result);
+    }
 }
