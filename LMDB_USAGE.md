@@ -2,6 +2,25 @@
 
 This guide explains how to use the LMDB correlation feature in correlation_rust.
 
+## Quick Start
+
+```bash
+# Run with example LMDB input
+cargo run -- tests/data/input_lmdb.json /tmp
+
+# Run with your own input
+cargo run -- /path/to/input.json /tmp
+
+# Run optimized release build
+cargo run --release -- input.json /tmp
+
+# Run tests
+cargo test
+
+# Run integration tests (requires GSL + LMDB)
+cargo test -- --ignored
+```
+
 ## Overview
 
 The LMDB correlation mode allows you to:
@@ -93,8 +112,38 @@ Create a file `input.json`:
 
 ### Step 3: Run Correlation
 
+#### Option A: Run compiled binary
+
 ```bash
 ./correlation_rust input.json /tmp
+```
+
+#### Option B: Run with Cargo (development)
+
+For development and testing, run directly without compiling:
+
+```bash
+# Run with cargo (uses the JSON file as argument)
+cargo run -- tests/data/input_lmdb.json /tmp
+
+# Run with custom input
+cargo run -- /path/to/my_input.json /tmp
+
+# Run with verbose output
+cargo run --release -- tests/data/input_lmdb.json /tmp
+```
+
+**Arguments:**
+- First argument: Path to JSON input file
+- Second argument: Temporary directory for output files
+
+**Environment variables:**
+```bash
+# Use custom LMDB path for testing
+LMDB_TEST_PATH=/custom/lmdb/path/ cargo run -- input.json /tmp
+
+# Debug logging
+RUST_LOG=debug cargo run -- input.json /tmp
 ```
 
 Or via GN3 (when implemented):
@@ -199,6 +248,16 @@ LMDB_TEST_PATH=/data/my_lmdb/ cargo test test_lmdb_correlation_with_strains -- -
 
 # Example with full dataset
 LMDB_TEST_PATH=/var/lmdb/GTEx_Liver/ cargo test test_lmdb_correlation_all_strains -- --ignored --nocapture
+```
+
+**Check available strains in your LMDB:**
+
+```bash
+# Using Python
+python3 -c "import lmdb, json; env = lmdb.open('/home/kabui/lmdb_data/HC_M2_0606_P/'); txn = env.begin(); meta = json.loads(txn.get(b'probeset_metadata')); print('Strains:', meta['strains'][:10])"
+
+# Using Rust (after building)
+cargo run --bin check_strains -- /home/kabui/lmdb_data/HC_M2_0606_P/
 ```
 
 **Test data requirements:**
