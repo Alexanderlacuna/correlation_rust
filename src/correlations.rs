@@ -207,13 +207,16 @@ impl<'a> Compute<'a> {
 
                 // Validate all strains were found in LMDB
                 if indices.len() != strains.len() {
+                    let available: Vec<_> = metadata.strains.iter().take(10).collect();
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidInput,
                         format!(
                             "Strain mismatch: requested {} strains, found {}. \
-                            Some strains may not exist in the LMDB dataset.",
+                            Some strains may not exist in the LMDB dataset. \
+                            Available strains (first 10): {:?}",
                             strains.len(),
-                            indices.len()
+                            indices.len(),
+                            available
                         ),
                     ));
                 }
