@@ -1,4 +1,6 @@
 {
+  "_comment": "IMPORTANT: strains array must match x_vals array length and order. \
+               strains[i] corresponds to x_vals[i] for each sample.",
   "file_path": "/home/kabui/lmdb_data/HC_M2_0606_P",
   "x_vals": [
 	25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824,

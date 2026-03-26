@@ -186,13 +186,26 @@ impl<'a> Compute<'a> {
         // Determine which columns to extract based on strains
         let column_indices: Vec<usize> = match self.strains {
             Some(strains) => {
+                // Validate strains array matches x_vals array
+                if strains.len() != self.x_vals.len() {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        format!(
+                            "Array length mismatch: {} strains but {} x_vals. \
+                            strains and x_vals must have the same length and matching order.",
+                            strains.len(),
+                            self.x_vals.len()
+                        ),
+                    ));
+                }
+
                 // Map strain names to their column indices
                 let indices: Vec<usize> = strains
                     .iter()
                     .filter_map(|s| strain_to_idx.get(s.as_str()).copied())
                     .collect();
 
-                // Validate all strains were found
+                // Validate all strains were found in LMDB
                 if indices.len() != strains.len() {
                     return Err(std::io::Error::new(
                         std::io::ErrorKind::InvalidInput,
