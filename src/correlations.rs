@@ -605,7 +605,7 @@ mod tests {
         let compute = Compute::new_with_strains(
             ',',
             "pearson",
-            lmdb_path,
+            &lmdb_path,
             &x_vals,
             "/tmp/test_output.txt",
             Some(&strains),
@@ -638,7 +638,7 @@ mod tests {
         let compute = Compute::new(
             ',',
             "pearson",
-            lmdb_path,
+            &lmdb_path,
             &x_vals,
             "/tmp/test_output_all.txt",
         );
