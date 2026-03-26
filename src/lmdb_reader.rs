@@ -164,14 +164,27 @@ mod tests {
     // Global LMDB path for all tests
     const LMDB_PATH: &str = "/home/kabui/lmdb_data/GTEx_Liver_0414/GTEx_Liver_0414/";
 
+    /// Helper to check if LMDB test data exists
+    fn lmdb_exists() -> bool {
+        std::path::Path::new(LMDB_PATH).exists()
+    }
+
     #[test]
     fn test_lmdb_reader() {
+        if !lmdb_exists() {
+            eprintln!("Skipping test: LMDB not found at {}", LMDB_PATH);
+            return;
+        }
         let reader = LmdbReader::new(LMDB_PATH);
         assert!(reader.is_ok());
     }
 
     #[test]
     fn test_read_metadata() {
+        if !lmdb_exists() {
+            eprintln!("Skipping test: LMDB not found at {}", LMDB_PATH);
+            return;
+        }
         let reader = LmdbReader::new(LMDB_PATH).unwrap();
         let metadata = reader.read_metadata();
         assert!(metadata.is_ok());
@@ -196,6 +209,10 @@ mod tests {
 
     #[test]
     fn test_read_matrix_shape() {
+        if !lmdb_exists() {
+            eprintln!("Skipping test: LMDB not found at {}", LMDB_PATH);
+            return;
+        }
         let reader = LmdbReader::new(LMDB_PATH).unwrap();
         let result = reader.read_matrix();
         assert!(result.is_ok());
@@ -240,6 +257,10 @@ mod tests {
 
     #[test]
     fn test_read_specific_trait() {
+        if !lmdb_exists() {
+            eprintln!("Skipping test: LMDB not found at {}", LMDB_PATH);
+            return;
+        }
         let reader = LmdbReader::new(LMDB_PATH).unwrap();
         let metadata = reader.read_metadata().unwrap();
 
@@ -271,6 +292,10 @@ mod tests {
 
     #[test]
     fn test_iterator() {
+        if !lmdb_exists() {
+            eprintln!("Skipping test: LMDB not found at {}", LMDB_PATH);
+            return;
+        }
         let reader = LmdbReader::new(LMDB_PATH).unwrap();
         let mut iter = reader.iter_traits().unwrap();
 
