@@ -9,8 +9,10 @@ pub struct JsonData {
     pub method: String,
     pub file_delimiter: char,
     pub output_file: String,
+    /// Optional strain names corresponding to x_vals indices.
+    /// Required for LMDB mode to extract correct columns.
     #[serde(default)]
-    pub use_lmdb: bool, // use LMDB instead of CSV
+    pub strains: Option<Vec<String>>,
 }
 
 impl JsonData {
@@ -170,7 +172,7 @@ mod tests {
             sample_values: String::from("bxd1"),
             method: String::from("pearson"),
             file_delimiter: ',',
-            use_lmdb: false,
+            strains: None,
         };
 
         assert_eq!(k, json_struct)
