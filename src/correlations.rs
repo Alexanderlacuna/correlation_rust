@@ -580,10 +580,17 @@ mod tests {
     //
     // cargo test test_lmdb_correlation -- --nocapture --ignored
     // Or with custom path: LMDB_TEST_PATH=/custom/path cargo test test_lmdb_correlation -- --ignored
+    //
+    // To check available strains in your LMDB:
+    // python3 -c "import lmdb, json; env = lmdb.open('/path/to/lmdb'); txn = env.begin(); 
+    //              meta = json.loads(txn.get(b'probeset_metadata')); print(meta['strains'][:10])"
     #[test]
     #[ignore = "requires GSL library and LMDB dataset"]
     fn test_lmdb_correlation_with_strains() {
+        use crate::lmdb_reader::LmdbReader;
         use std::path::Path;
+        use std::thread;
+        use std::time::Duration;
 
         let lmdb_path = std::env::var("LMDB_TEST_PATH")
             .unwrap_or_else(|_| "/home/kabui/lmdb_data/HC_M2_0606_P/".to_string());
@@ -591,16 +598,24 @@ mod tests {
             panic!("LMDB test data not found at {}. Set LMDB_TEST_PATH env var.", lmdb_path);
         }
 
-        // Example: correlate with first 6 strains only
-        let x_vals = vec![25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655];
-        let strains = vec![
-            String::from("1_100_15"),
-            String::from("1_101_15"),
-            String::from("1_102_15"),
-            String::from("1_103_15"),
-            String::from("1_104_15"),
-            String::from("1_105_15"),
-        ];
+        // Read actual strains from LMDB metadata
+        let reader = LmdbReader::new(&lmdb_path).expect("Failed to open LMDB");
+        let metadata = reader.read_metadata().expect("Failed to read metadata");
+        
+        // Use first 6 strains from the actual dataset
+        if metadata.strains.len() < 6 {
+            panic!("LMDB has fewer than 6 strains: {}", metadata.strains.len());
+        }
+        
+        let strains: Vec<String> = metadata.strains.iter().take(6).cloned().collect();
+        eprintln!("Using strains: {:?}", strains);
+
+        // Drop reader to release LMDB lock before compute opens it again
+        drop(reader);
+        thread::sleep(Duration::from_millis(100));
+
+        // Create x_vals matching the number of strains
+        let x_vals: Vec<f64> = (0..strains.len()).map(|i| 10.0 + i as f64 * 5.5).collect();
 
         let compute = Compute::new_with_strains(
             ',',
@@ -614,14 +629,20 @@ mod tests {
         let result = compute.compute();
         assert!(result.is_ok(), "LMDB correlation failed: {:?}", result);
 
-        // Verify output file was created
+        // Verify output file was created and has content
         assert!(Path::new("/tmp/test_output.txt").exists());
+        let output_content = std::fs::read_to_string("/tmp/test_output.txt").unwrap();
+        assert!(!output_content.is_empty(), "Output file is empty");
+        eprintln!("Correlation computed for {} traits", output_content.lines().count());
     }
 
     #[test]
     #[ignore = "requires GSL library and LMDB dataset"]
     fn test_lmdb_correlation_all_strains() {
+        use crate::lmdb_reader::LmdbReader;
         use std::path::Path;
+        use std::thread;
+        use std::time::Duration;
 
         let lmdb_path = std::env::var("LMDB_TEST_PATH")
             .unwrap_or_else(|_| "/home/kabui/lmdb_data/HC_M2_0606_P/".to_string());
@@ -629,12 +650,21 @@ mod tests {
             panic!("LMDB test data not found at {}. Set LMDB_TEST_PATH env var.", lmdb_path);
         }
 
-        // Without strains - should use all columns (backward compatibility)
-        let x_vals = vec![
-            25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655, 87.81991, 84.86824,
-            6.72478, 5.72373, 73.47078, 63.74703,
-        ];
+        // Read number of strains from metadata
+        let reader = LmdbReader::new(&lmdb_path).expect("Failed to open LMDB");
+        let metadata = reader.read_metadata().expect("Failed to read metadata");
+        let num_strains = metadata.columns;
+        
+        eprintln!("LMDB has {} strains", num_strains);
 
+        // Drop reader to release LMDB lock
+        drop(reader);
+        thread::sleep(Duration::from_millis(100));
+
+        // Create x_vals for all strains
+        let x_vals: Vec<f64> = (0..num_strains).map(|i| 10.0 + i as f64 * 1.5).collect();
+
+        // Without strains - should use all columns (backward compatibility)
         let compute = Compute::new(
             ',',
             "pearson",
@@ -645,5 +675,11 @@ mod tests {
 
         let result = compute.compute();
         assert!(result.is_ok(), "LMDB correlation failed: {:?}", result);
+        
+        // Verify output
+        assert!(Path::new("/tmp/test_output_all.txt").exists());
+        let output_content = std::fs::read_to_string("/tmp/test_output_all.txt").unwrap();
+        assert!(!output_content.is_empty(), "Output file is empty");
+        eprintln!("Correlation computed for {} traits", output_content.lines().count());
     }
 }
