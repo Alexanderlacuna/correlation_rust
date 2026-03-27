@@ -7,41 +7,42 @@ pub struct Analysis;
 impl Analysis {
     /// Compute correlation from JSON configuration file.
     /// 
-    /// If strains are provided in the JSON, uses LMDB mode with column extraction.
-    /// Otherwise, uses standard CSV mode.
+    /// Uses `file_type` field to determine mode:
+    /// - "csv" (default): Standard CSV mode
+    /// - "lmdb": LMDB mode with strain-based column extraction
     pub fn compute(tmp_file: &str) -> std::io::Result<String> {
         let json_results = parser::JsonData::new(tmp_file);
 
         let x_vals: Vec<f64> = json_results.x_vals;
 
-        // Use strains-aware constructor if strains provided
-        let computation_status = match json_results.strains {
-            Some(ref strains) => {
-                // LMDB mode with strain-based column extraction
-                correlations::Compute::new_with_strains_parallel(
-                    json_results.file_delimiter,
-                    &json_results.method,
-                    &json_results.file_path,
-                    &x_vals,
-                    &json_results.output_file,
-                    Some(strains.as_slice()),
-                    json_results.parallel,
-                )
-                .compute()
-            }
-            None => {
-                // Legacy CSV mode (or LMDB without strain specification)
-                correlations::Compute::new_with_strains_parallel(
-                    json_results.file_delimiter,
-                    &json_results.method,
-                    &json_results.file_path,
-                    &x_vals,
-                    &json_results.output_file,
-                    None,
-                    json_results.parallel,
-                )
-                .compute()
-            }
+        // Determine mode based on file_type
+        let is_lmdb_mode = json_results.file_type == "lmdb";
+
+        let computation_status = if is_lmdb_mode {
+            // LMDB mode - requires strains for column extraction
+            let strains_ref = json_results.strains.as_deref();
+            correlations::Compute::new_with_strains_parallel(
+                json_results.file_delimiter,
+                &json_results.method,
+                &json_results.file_path,
+                &x_vals,
+                &json_results.output_file,
+                strains_ref,
+                json_results.parallel,
+            )
+            .compute()
+        } else {
+            // CSV mode (default)
+            correlations::Compute::new_with_strains_parallel(
+                json_results.file_delimiter,
+                &json_results.method,
+                &json_results.file_path,
+                &x_vals,
+                &json_results.output_file,
+                None,
+                json_results.parallel,
+            )
+            .compute()
         };
 
         computation_status
@@ -72,6 +73,7 @@ mod tests {
                 "file_path": "/tmp/test_lmdb/",
                 "x_vals": [1.0, 2.0, 3.0],
                 "strains": ["BXD1", "BXD2", "BXD5"],
+                "file_type": "lmdb",
                 "sample_values": "test",
                 "method": "pearson",
                 "file_delimiter": ",",
