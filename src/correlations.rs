@@ -202,7 +202,8 @@ impl<'a> Compute<'a> {
             .collect();
 
         // Determine which columns to extract based on strains
-        let column_indices: Vec<usize> = match self.strains {
+        // Filters out strains that don't exist in the dataset
+        let (column_indices, filtered_x_vals): (Vec<usize>, Vec<f64>) = match self.strains {
             Some(strains) => {
                 // Validate strains array matches x_vals array
                 if strains.len() != self.x_vals.len() {
@@ -217,32 +218,32 @@ impl<'a> Compute<'a> {
                     ));
                 }
 
-                // Map strain names to their column indices
-                let indices: Vec<usize> = strains
-                    .iter()
-                    .filter_map(|s| strain_to_idx.get(s.as_str()).copied())
-                    .collect();
-
-                // Validate all strains were found in LMDB
-                if indices.len() != strains.len() {
-                    let available: Vec<_> = metadata.strains.iter().take(10).collect();
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::InvalidInput,
-                        format!(
-                            "Strain mismatch: requested {} strains, found {}. \
-                            Some strains may not exist in the LMDB dataset. \
-                            Available strains (first 10): {:?}",
-                            strains.len(),
-                            indices.len(),
-                            available
-                        ),
-                    ));
+                // Map strain names to their column indices, filtering out missing strains
+                let mut indices = Vec::new();
+                let mut x_vals_filtered = Vec::new();
+                
+                for (i, strain) in strains.iter().enumerate() {
+                    if let Some(&idx) = strain_to_idx.get(strain.as_str()) {
+                        indices.push(idx);
+                        x_vals_filtered.push(self.x_vals[i]);
+                    }
                 }
-                indices
+
+                // Warn if some strains were dropped
+                if indices.len() != strains.len() {
+                    eprintln!(
+                        "Warning: Filtered out {} missing strains. Using {} of {} requested strains.",
+                        strains.len() - indices.len(),
+                        indices.len(),
+                        strains.len()
+                    );
+                }
+                
+                (indices, x_vals_filtered)
             }
             None => {
                 // No strains specified - use all columns (legacy mode)
-                (0..metadata.columns).collect()
+                ((0..metadata.columns).collect(), self.x_vals.to_vec())
             }
         };
 
@@ -251,6 +252,9 @@ impl<'a> Compute<'a> {
             .iter_traits()
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))?
             .collect();
+
+        // Use filtered_x_vals for correlation (already aligned with column_indices)
+        let x_vals_ref = &filtered_x_vals;
 
         if self.parallel {
             // Parallel processing with rayon
@@ -268,8 +272,8 @@ impl<'a> Compute<'a> {
                     let mut parsed_y_vals = Vec::new();
 
                     for (i, &y_val) in y_vals.iter().enumerate() {
-                        if i < self.x_vals.len() && !y_val.is_nan() {
-                            parsed_x_vals.push(self.x_vals[i]);
+                        if i < x_vals_ref.len() && !y_val.is_nan() {
+                            parsed_x_vals.push(x_vals_ref[i]);
                             parsed_y_vals.push(y_val);
                         }
                     }
@@ -303,8 +307,8 @@ impl<'a> Compute<'a> {
                 let mut parsed_y_vals = Vec::new();
 
                 for (i, &y_val) in y_vals.iter().enumerate() {
-                    if i < self.x_vals.len() && !y_val.is_nan() {
-                        parsed_x_vals.push(self.x_vals[i]);
+                    if i < x_vals_ref.len() && !y_val.is_nan() {
+                        parsed_x_vals.push(x_vals_ref[i]);
                         parsed_y_vals.push(y_val);
                     }
                 }
@@ -667,6 +671,7 @@ mod tests {
     #[ignore = "requires GSL library and LMDB dataset"]
     fn test_lmdb_correlation_with_strains() {
         use crate::lmdb_reader::LmdbReader;
+        use crate::lmdb_reader::LMDB_TEST_LOCK;
         use std::path::Path;
         use std::thread;
         use std::time::Duration;
@@ -676,6 +681,9 @@ mod tests {
         if !Path::new(&lmdb_path).exists() {
             panic!("LMDB test data not found at {}. Set LMDB_TEST_PATH env var.", lmdb_path);
         }
+
+        // Acquire lock to prevent parallel LMDB access
+        let _lock = LMDB_TEST_LOCK.lock().unwrap();
 
         // Read actual strains from LMDB metadata
         let reader = LmdbReader::new(&lmdb_path).expect("Failed to open LMDB");
@@ -719,6 +727,7 @@ mod tests {
     #[ignore = "requires GSL library and LMDB dataset"]
     fn test_lmdb_correlation_all_strains() {
         use crate::lmdb_reader::LmdbReader;
+        use crate::lmdb_reader::LMDB_TEST_LOCK;
         use std::path::Path;
         use std::thread;
         use std::time::Duration;
@@ -728,6 +737,9 @@ mod tests {
         if !Path::new(&lmdb_path).exists() {
             panic!("LMDB test data not found at {}. Set LMDB_TEST_PATH env var.", lmdb_path);
         }
+
+        // Acquire lock to prevent parallel LMDB access
+        let _lock = LMDB_TEST_LOCK.lock().unwrap();
 
         // Read number of strains from metadata
         let reader = LmdbReader::new(&lmdb_path).expect("Failed to open LMDB");

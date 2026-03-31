@@ -188,6 +188,7 @@ mod tests {
             method: String::from("pearson"),
             file_delimiter: ',',
             strains: None,
+            parallel: true,
         };
 
         assert_eq!(k, json_struct)

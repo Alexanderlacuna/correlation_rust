@@ -4,6 +4,11 @@ use lmdb::{Database, Environment, Transaction};
 use serde::Deserialize;
 use std::path::Path;
 
+/// Global lock for LMDB tests to prevent parallel access
+/// LMDB doesn't support multiple concurrent readers from different environments
+use std::sync::Mutex;
+pub static LMDB_TEST_LOCK: Mutex<()> = Mutex::new(());
+
 #[derive(Debug, Deserialize)]
 pub struct LmdbMetadata {
     pub rows: usize,
@@ -176,12 +181,15 @@ mod tests {
         std::path::Path::new(&get_lmdb_path()).exists()
     }
 
+    // Tests use the global LMDB_TEST_LOCK defined at module level
+
     #[test]
     fn test_lmdb_reader() {
         if !lmdb_exists() {
             eprintln!("Skipping test: LMDB not found at {}", get_lmdb_path());
             return;
         }
+        let _lock = LMDB_TEST_LOCK.lock().unwrap();
         let reader = LmdbReader::new(&get_lmdb_path());
         assert!(reader.is_ok());
     }
@@ -192,6 +200,7 @@ mod tests {
             eprintln!("Skipping test: LMDB not found at {}", get_lmdb_path());
             return;
         }
+        let _lock = LMDB_TEST_LOCK.lock().unwrap();
         let reader = LmdbReader::new(&get_lmdb_path()).unwrap();
         let metadata = reader.read_metadata();
         assert!(metadata.is_ok());
@@ -220,6 +229,7 @@ mod tests {
             eprintln!("Skipping test: LMDB not found at {}", get_lmdb_path());
             return;
         }
+        let _lock = LMDB_TEST_LOCK.lock().unwrap();
         let reader = LmdbReader::new(&get_lmdb_path()).unwrap();
         let result = reader.read_matrix();
         assert!(result.is_ok());
@@ -268,6 +278,7 @@ mod tests {
             eprintln!("Skipping test: LMDB not found at {}", get_lmdb_path());
             return;
         }
+        let _lock = LMDB_TEST_LOCK.lock().unwrap();
         let reader = LmdbReader::new(&get_lmdb_path()).unwrap();
         let metadata = reader.read_metadata().unwrap();
 
@@ -276,6 +287,11 @@ mod tests {
             println!("Trait name: {}", first_trait);
 
             let result = reader.read_trait(first_trait);
+            // Drop reader to release LMDB lock before assertions
+            drop(reader);
+            // Release the lock after reader is dropped
+            drop(_lock);
+            
             println!("the results are {:?}", result);
             assert!(result.is_ok());
 
@@ -303,8 +319,13 @@ mod tests {
             eprintln!("Skipping test: LMDB not found at {}", get_lmdb_path());
             return;
         }
+        let _lock = LMDB_TEST_LOCK.lock().unwrap();
         let reader = LmdbReader::new(&get_lmdb_path()).unwrap();
         let mut iter = reader.iter_traits().unwrap();
+        // Drop reader to release LMDB lock - iter has its own copy of data
+        drop(reader);
+        // Release the lock after reader is dropped
+        drop(_lock);
 
         println!("\n=== Testing Iterator ===");
         println!("First 3 traits from iterator:\n");
