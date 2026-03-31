@@ -1,0 +1,26 @@
+{
+  "_comment": "Test: 1 real strain, 5 fake - minimal valid data. Expected overlap: 1",
+  "file_path": "/home/kabui/lmdb_data/HC_M2_0606_P",
+  "x_vals": [
+    10.0,
+    15.5,
+    21.0,
+    26.5,
+    32.0,
+    37.5
+  ],
+  "strains": [
+    "B6D2F1",
+    "FAKE_1",
+    "FAKE_2",
+    "FAKE_3",
+    "FAKE_4",
+    "FAKE_5"
+  ],
+  "sample_values": "test_mostly_missing",
+  "method": "pearson",
+  "file_delimiter": ",",
+  "output_file": "/tmp/test_mostly_missing_output.txt",
+  "parallel": true,
+  "file_type": "lmdb"
+}

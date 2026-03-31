@@ -1,0 +1,20 @@
+{
+  "_comment": "Test: All strains fake - should error or return empty. Expected overlap: 0",
+  "file_path": "/home/kabui/lmdb_data/HC_M2_0606_P",
+  "x_vals": [
+    10.0,
+    20.0,
+    30.0
+  ],
+  "strains": [
+    "COMPLETELY",
+    "BOGUS",
+    "NONEXISTENT"
+  ],
+  "sample_values": "test_all_missing",
+  "method": "pearson",
+  "file_delimiter": ",",
+  "output_file": "/tmp/test_all_missing_output.txt",
+  "parallel": true,
+  "file_type": "lmdb"
+}

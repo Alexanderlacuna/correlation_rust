@@ -1,0 +1,30 @@
+{
+  "_comment": "Test: 4 real strains, 4 fake strains - should drop fake ones. Expected overlap: 4",
+  "file_path": "/home/kabui/lmdb_data/HC_M2_0606_P",
+  "x_vals": [
+    10.0,
+    15.5,
+    21.0,
+    26.5,
+    32.0,
+    37.5,
+    43.0,
+    48.5
+  ],
+  "strains": [
+    "B6D2F1",
+    "FAKE_STRAIN_1",
+    "BXD11",
+    "NONEXISTENT",
+    "BXD45",
+    "BOGUS_STRAIN",
+    "PWK/PhJ",
+    "INVALID"
+  ],
+  "sample_values": "test_half_missing",
+  "method": "pearson",
+  "file_delimiter": ",",
+  "output_file": "/tmp/test_half_missing_output.txt",
+  "parallel": true,
+  "file_type": "lmdb"
+}
