@@ -1,0 +1,16 @@
+{
+  "_comment": "Example LMDB correlation input using strain NAMES (not IDs). After re-dumping with updated batch_lmdb_metadata.py, strains will be actual names like 'C57BL/6J' instead of '1'.",
+  "file_path": "/home/kabui/lmdb_data/HC_M2_0606_P/",
+  "x_vals": [
+    25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655,
+    87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703
+  ],
+  "strains": [
+    "C57BL/6J", "DBA/2J", "BXD1", "BXD2", "BXD5", "BXD6",
+    "BXD8", "BXD9", "BXD11", "BXD12", "BXD14", "BXD15"
+  ],
+  "sample_values": "bxd1",
+  "method": "pearson",
+  "file_delimiter": ",",
+  "output_file": "output.txt"
+}

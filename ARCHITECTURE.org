@@ -1,0 +1,306 @@
+#+TITLE: GeneNetwork Correlation Architecture
+#+AUTHOR: Kabui
+#+DATE: 2026-03-26
+
+* Overview
+
+This document describes the correlation computation architecture in GeneNetwork,
+from the web interface (GN2) through the computation service (GN3) to the
+high-performance Rust backend. It also details the LMDB optimization strategy
+for improving correlation performance.
+
+* Architecture Flow
+
+The correlation system follows a three-tier architecture:
+
+#+BEGIN_SRC
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              GENENETWORK2 (GN2)                              │
+│                         (Web UI + MySQL Data Fetch)                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                              GENENETWORK3 (GN3)                              │
+│                         (Computation Interface)                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           CORRELATION_RUST                                   │
+│                      (High-Performance Compute Engine)                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+#+END_SRC
+
+** Layer 1: GeneNetwork2 (GN2)
+
+Location: =~/project3/genenetwork2/gn2/wqflask/correlation/=
+
+*** Key Files
+
+| File | Purpose |
+|------|---------|
+| =correlation_gn3_api.py= | Main API entry point, creates trait/dataset objects |
+| =rust_correlation.py= | Fetches sample data from MySQL, formats for GN3 |
+
+*** Data Flow
+
+1. =create_target_this_trait()= creates dataset and trait objects
+2. =compute_correlation_rust()= is the main entry point
+3. =__compute_sample_corr__()= or =compute_top_n_sample()= queries MySQL
+4. Data is formatted as =list[str]= (CSV-like rows) for transfer to GN3
+
+*** MySQL Queries (Bottleneck)
+
+#+BEGIN_SRC sql
+-- From compute_top_n_sample() in rust_correlation.py
+SELECT * from ProbeSetData 
+WHERE StrainID IN (?, ?, ...) 
+AND Id IN (
+  SELECT ProbeSetXRef.DataId 
+  FROM ProbeSet, ProbeSetXRef, ProbeSetFreeze
+  WHERE ProbeSetXRef.ProbeSetFreezeId = ProbeSetFreeze.Id
+  AND ProbeSetFreeze.Name = ?
+  AND ProbeSet.Name IN (?, ?, ...)
+  AND ProbeSet.Id = ProbeSetXRef.ProbeSetId
+)
+#+END_SRC
+
+** Layer 2: GeneNetwork3 (GN3)
+
+Location: =~/project/genenetwork3/gn3/computations/rust_correlation.py=
+
+*** Key Functions
+
+| Function | Purpose |
+|----------|---------|
+| =run_correlation()= | Main orchestration function |
+| =generate_input_files()= | Writes dataset to CSV file |
+| =generate_json_file()= | Creates JSON config for Rust |
+| =parse_correlation_output()= | Reads and parses Rust results |
+
+*** JSON Configuration Format
+
+The JSON file passed to Rust has this structure:
+
+#+BEGIN_SRC json
+{
+  "method": "pearson",
+  "file_path": "/tmp/correlation/abc123.txt",
+  "x_vals": [1.2, 3.4, 5.6, ...],
+  "sample_values": "bxd1",
+  "output_file": "/tmp/correlation/def456.txt",
+  "file_delimiter": ","
+}
+#+END_SRC
+
+*** Process Flow
+
+1. Receive dataset and trait values from GN2
+2. =generate_input_files()= writes CSV to disk
+3. =generate_json_file()= creates JSON config pointing to CSV
+4. Execute Rust binary via =subprocess.run()=
+5. =parse_correlation_output()= reads results
+
+** Layer 3: Correlation Rust
+
+Location: =~/correlation_rust/=
+
+*** Key Files
+
+| File | Purpose |
+|------|---------|
+| =src/main.rs= | Entry point, JSON parsing |
+| =src/analysis.rs= | Orchestrates correlation computation |
+| =src/correlations.rs= | Core correlation logic (Pearson/Spearman) |
+| =src/lmdb_reader.rs= | LMDB reading interface |
+| =src/reader.rs= | CSV reading interface |
+
+*** Auto-Detection Logic
+
+The Rust code automatically detects input type:
+
+#+BEGIN_SRC rust
+pub fn compute(&self) -> std::io::Result<String> {
+    if std::path::Path::new(self.dataset_path).is_dir() {
+        // FAST: Memory-mapped LMDB
+        self.compute_from_lmdb(&mut corr_results)?;
+    } else {
+        // SLOW: CSV parsing
+        self.compute_from_csv(&mut corr_results)?;
+    }
+    // ...
+}
+#+END_SRC
+
+* Current Bottleneck Analysis
+
+** Performance Breakdown
+
+| Step | Time Complexity | Issue |
+|------|-----------------|-------|
+| MySQL Query | O(n × m) | Large JOINs across ProbeSetData, ProbeSetXRef |
+| CSV Generation | O(n) | Disk I/O for large datasets |
+| CSV Parsing | O(n) | String parsing overhead |
+| **Total** | **~seconds to minutes** | For large ProbeSet datasets |
+
+** Scale of Data
+
+| Dataset Type | Typical Size |
+|--------------|--------------|
+| Traits (ProbeSets) | 20,000 - 50,000 |
+| Strains | 20 - 100 |
+| Total Values | ~1-5 million |
+
+* LMDB Optimization Strategy
+
+** New Data Flow
+
+#+BEGIN_SRC
+┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌──────────┐
+│   MySQL     │────▶│ Python Dump  │────▶│    LMDB File    │────▶│   Rust   │
+│  (Source)   │     │(One-time)    │     │ (Memory-mapped) │     │ (Fast!)  │
+└─────────────┘     └──────────────┘     └─────────────────┘     └──────────┘
+                                                      ▲
+                                                      │
+┌─────────────┐     ┌──────────────┐                  │
+│    GN2      │────▶│     GN3      │──────────────────┘
+│ (Skip DB    │     │(Pass LMDB    │  Just pass path
+│  queries)   │     │  path only)  │  instead of CSV data
+└─────────────┘     └──────────────┘
+#+END_SRC
+
+** LMDB Data Format
+
+Produced by: =batch_lmdb_metadata.py= (in =lmdb_scripts/=)
+
+| LMDB Key | Content | Format |
+|----------|---------|--------|
+| =probeset_matrix= | Expression values | Raw f64 bytes (row-major) |
+| =probeset_metadata= | Dataset info | JSON (shape, traits, strains) |
+| =probeset_se_matrix= | Standard errors | Raw f64 bytes (optional) |
+
+** Rust LMDB Reader
+
+Location: =src/lmdb_reader.rs=
+
+| Method | Purpose |
+|--------|---------|
+| =LmdbReader::new(path)= | Open LMDB environment |
+| =read_metadata()= | Parse JSON metadata |
+| =read_trait(name)= | Random access single trait |
+| =iter_traits()= | Stream all traits (correlation uses this) |
+
+* Required Changes for LMDB Integration
+
+** Minimal Change Approach
+
+Modify only =gn3/computations/rust_correlation.py= to support LMDB paths.
+
+*** Current Behavior
+
+1. GN2 passes dataset as =list[str]=
+2. GN3 writes CSV file
+3. JSON points to CSV file path
+4. Rust reads CSV
+
+*** New Behavior (LMDB Mode)
+
+1. GN2 passes LMDB directory path instead of data
+2. GN3 skips CSV generation
+3. JSON points directly to LMDB directory
+4. Rust detects directory → uses =compute_from_lmdb()=
+
+*** Code Change Required
+
+In =gn3/computations/rust_correlation.py=:
+
+#+BEGIN_SRC python
+# CURRENT: Always generates CSV
+def run_correlation(dataset, trait_vals, method, delimiter, tmpdir, ...):
+    (tmp_dir, tmp_file) = generate_input_files(dataset, tmpdir)
+    (output_file, json_file) = generate_json_file(...)
+    # ... subprocess call
+
+# NEW: Support LMDB path
+def run_correlation(dataset_or_path, trait_vals, method, delimiter, tmpdir, 
+                    use_lmdb=False, ...):
+    if use_lmdb:
+        # dataset_or_path is actually the LMDB directory path
+        lmdb_path = dataset_or_path
+        (output_file, json_file) = generate_json_file_for_lmdb(
+            lmdb_path=lmdb_path, ...)
+    else:
+        # Original CSV logic
+        (tmp_dir, tmp_file) = generate_input_files(dataset_or_path, tmpdir)
+        (output_file, json_file) = generate_json_file(...)
+    # ... subprocess call
+#+END_SRC
+
+** No Changes Required In
+
+| Component | Reason |
+|-----------|--------|
+| correlation_rust | Already auto-detects LMDB via =is_dir()= check |
+| LMDB format | Already matches Python output |
+
+* Testing Strategy
+
+** End-to-End Test
+
+1. Dump a dataset using =batch_lmdb_metadata.py=
+   #+BEGIN_SRC bash
+   python batch_lmdb_metadata.py dump-dataset \
+       "mysql://user:pass@localhost/db" \
+       /tmp/lmdb_data \
+       206
+   #+END_SRC
+
+2. Verify LMDB can be read by Rust
+   #+BEGIN_SRC bash
+   cd ~/correlation_rust
+   cargo test test_read_metadata -- --nocapture
+   cargo test test_iterator -- --nocapture
+   #+END_SRC
+
+3. Test correlation via JSON input
+   #+BEGIN_SRC json
+   {
+     "method": "pearson",
+     "file_path": "/tmp/lmdb_data/HC_M2_0606_P",
+     "x_vals": [1.2, 3.4, ...],
+     "output_file": "/tmp/results.txt"
+   }
+   #+END_SRC
+
+* Performance Expectations
+
+| Metric | CSV Mode | LMDB Mode | Improvement |
+|--------|----------|-----------|-------------|
+| Data Loading | ~1-5s | ~10-100ms | 10-100x |
+| Memory Usage | High (full load) | Low (mmap) | OS-managed |
+| Random Access | O(n) seek | O(1) direct | Instant |
+| Startup Time | ~seconds | ~milliseconds | Near instant |
+
+* References
+
+** File Locations
+
+| Component | Path |
+|-----------|------|
+| GN2 Correlation | =~/project3/genenetwork2/gn2/wqflask/correlation/= |
+| GN3 Correlation | =~/project/genenetwork3/gn3/computations/rust_correlation.py= |
+| Rust Correlation | =~/correlation_rust/= |
+| LMDB Dumper | =~/lmdb_scripts/batch_lmdb_metadata.py= |
+
+** Git Branches
+
+| Repository | Branch | Purpose |
+|------------|--------|---------|
+| correlation_rust | =feature/lmdb-optimization= | LMDB reading support |
+
+** Key Commits/Changes
+
+- LMDB reader implementation: =src/lmdb_reader.rs=
+- Auto-detection logic: =src/correlations.rs= (lines ~180-200)
+- Python LMDB dumper: =batch_lmdb_metadata.py=

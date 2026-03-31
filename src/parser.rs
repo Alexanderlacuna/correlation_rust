@@ -1,15 +1,32 @@
 use serde::Deserialize;
 use std::io::Read;
-#[derive(Debug, Deserialize, PartialEq)]
-//#[serde(rename_all = "PascalCase")]
 
+#[derive(Debug, Deserialize, PartialEq)]
 pub struct JsonData {
     pub file_path: String,
     pub x_vals: Vec<f64>,
     pub sample_values: String,
+    /// File type: "csv" or "lmdb". Default: "csv"
+    #[serde(default = "default_file_type")]
+    pub file_type: String,
     pub method: String,
     pub file_delimiter: char,
     pub output_file: String,
+    /// Optional strain names corresponding to x_vals indices.
+    /// Required for LMDB mode to extract correct columns.
+    #[serde(default)]
+    pub strains: Option<Vec<String>>,
+    /// Enable parallel processing with rayon. Default: true
+    #[serde(default = "default_parallel")]
+    pub parallel: bool,
+}
+
+fn default_file_type() -> String {
+    "csv".to_string()
+}
+
+fn default_parallel() -> bool {
+    true
 }
 
 impl JsonData {
@@ -167,8 +184,11 @@ mod tests {
                 6.72478, 5.72373, 73.47078, 63.74703,
             ],
             sample_values: String::from("bxd1"),
+            file_type: String::from("csv"),
             method: String::from("pearson"),
             file_delimiter: ',',
+            strains: None,
+            parallel: true,
         };
 
         assert_eq!(k, json_struct)

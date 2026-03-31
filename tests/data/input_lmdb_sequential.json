@@ -1,0 +1,15 @@
+{
+  "_comment": "Sequential mode test (parallel: false)",
+  "file_path": "/home/kabui/lmdb_data/HC_M2_0606_P",
+  "x_vals": [
+	25.08439, 72.02225, 47.56293, 22.87893, 14.28721, 71.84655,
+	87.81991, 84.86824, 6.72478, 5.72373, 73.47078, 63.74703],
+  "strains": [
+	"BXD11", "BXD12", "BXD45", "BXD48", "BXD50", "BXD51",
+	"BXD55", "B6D2F1", "D2B6F1", "PWK/PhJ", "C57BL/6J", "DBA/2J"],
+  "sample_values": "bxd1",
+  "method": "pearson",
+  "file_delimiter": ",",
+  "output_file": "output_sequential.txt",
+  "parallel": false
+}

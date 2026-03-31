@@ -1,0 +1,556 @@
+#+TITLE: Strain Alignment for LMDB Correlation
+#+AUTHOR: Kabui
+#+DATE: 2026-03-26
+
+* Problem Statement
+
+When computing correlations using LMDB, we have a **strain alignment problem**:
+
+**LMDB Structure:**
+- Contains ALL strains from the dataset in a fixed order
+- Matrix shape: (n_traits, n_strains)
+- Example strains: ["BXD1", "BXD2", "BXD5", "BXD6", "BXD8", ...]
+
+**User Input (from GN2):**
+- User selects a SUBSET of strains: ["BXD1", "BXD2", "BXD5"]
+- Provides x_vals (input trait values): [1.2, 3.4, 5.6]
+- These values correspond to the selected strains in order
+
+**The Challenge:**
+When iterating through traits in the LMDB, we get full rows with ALL strains:
+```
+Trait_001: [1.1, 2.2, 3.3, 4.4, 5.5, ...]  // All strains
+```
+
+But x_vals only has values for SELECTED strains:
+```
+x_vals: [1.2, 3.4, 5.6]  // Only BXD1, BXD2, BXD5
+```
+
+**Solution:** Pass strain names in the JSON so Rust can extract the correct columns.
+
+* Proposed JSON Format
+
+The JSON passed to Rust needs to include strain information:
+
+#+BEGIN_SRC json
+{
+  "method": "pearson",
+  "file_path": "/path/to/lmdb/HC_M2_0606_P",
+  "x_vals": [1.2, 3.4, 5.6],
+  "strains": ["BXD1", "BXD2", "BXD5"],
+  "output_file": "/tmp/results.txt",
+  "file_delimiter": ","
+}
+#+END_SRC
+
+**Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| method | string | "pearson" or "spearman" |
+| file_path | string | Path to LMDB directory (detected as dir) |
+| x_vals | array[f64] | Input trait values for selected strains |
+| strains | array[string] | Strain names corresponding to x_vals |
+| output_file | string | Where to write results |
+| file_delimiter | string | Ignored for LMDB, kept for compatibility |
+
+* Rust Implementation Plan
+
+**1. Parser Updates**
+
+Add `strains` field to the JSON deserialization struct:
+
+#+BEGIN_SRC rust
+#[derive(Debug, Deserialize)]
+pub struct JsonData {
+    pub method: String,
+    pub file_path: String,
+    pub x_vals: Vec<f64>,
+    pub strains: Option<Vec<String>>,  // NEW: Optional for backward compatibility
+    pub output_file: String,
+    pub file_delimiter: char,
+}
+#+END_SRC
+
+**2. Compute Struct Updates**
+
+Add strains to the Compute struct:
+
+#+BEGIN_SRC rust
+pub struct Compute<'a> {
+    x_vals: &'a [f64],
+    strains: Option<&'a [String]>,  // NEW
+    dataset_path: &'a str,
+    method: CorrelationMethod,
+    file_delimiter: char,
+    output_file: &'a str,
+}
+#+END_SRC
+
+**3. LMDB Correlation Logic**
+
+Update `compute_from_lmdb` to handle strain selection:
+
+#+BEGIN_SRC rust
+fn compute_from_lmdb(
+    &self,
+    corr_results: &mut Vec<(String, f64, f64, i32)>,
+) -> std::io::Result<()> {
+    let reader = LmdbReader::new(self.dataset_path)?;
+    let metadata = reader.read_metadata()?;
+    
+    // Build strain -> column index mapping from LMDB metadata
+    let strain_to_idx: HashMap<&str, usize> = metadata.strains
+        .iter()
+        .enumerate()
+        .map(|(i, s)| (s.as_str(), i))
+        .collect();
+    
+    // Determine which columns to extract
+    let column_indices: Vec<usize> = match self.strains {
+        Some(strains) => {
+            // User specified strains - look up their indices
+            strains.iter()
+                .filter_map(|s| strain_to_idx.get(s.as_str()).copied())
+                .collect()
+        }
+        None => {
+            // No strains specified - use all columns (legacy mode)
+            (0..metadata.columns).collect()
+        }
+    };
+    
+    // Validate we found all requested strains
+    if let Some(strains) = self.strains {
+        if column_indices.len() != strains.len() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("Strain mismatch: requested {}, found {}", 
+                    strains.len(), column_indices.len())
+            ));
+        }
+    }
+    
+    // Iterate through all traits
+    let mut iter = reader.iter_traits()?;
+    while let Some((trait_name, full_row)) = iter.next() {
+        // Extract only the columns we need
+        let y_vals: Vec<f64> = column_indices
+            .iter()
+            .map(|&idx| full_row[idx])
+            .collect();
+        
+        // Filter NaN and compute correlation
+        let (parsed_x, parsed_y) = filter_and_align(&self.x_vals, &y_vals);
+        
+        if parsed_x.len() >= 4 {
+            let (rho, p_val) = self.correlate(&parsed_x, &parsed_y);
+            corr_results.push((trait_name, rho, p_val, parsed_x.len() as i32));
+        }
+    }
+    
+    Ok(())
+}
+#+END_SRC
+
+* GN3 Integration
+
+**New Function: `generate_json_file_for_lmdb`**
+
+#+BEGIN_SRC python
+def generate_json_file_for_lmdb(
+        lmdb_path: str,
+        strains: list[str],
+        x_vals: list[float],
+        method: str,
+        tmp_dir: str) -> tuple[str, str]:
+    """Generate JSON config for LMDB mode (no CSV generation needed)"""
+    
+    tmp_json_file = os.path.join(tmp_dir, f"{random_string(10)}.json")
+    output_file = os.path.join(tmp_dir, f"{random_string(10)}.txt")
+
+    with open(tmp_json_file, "w", encoding="utf-8") as f:
+        json.dump({
+            "method": method,
+            "file_path": lmdb_path,        # LMDB directory path
+            "x_vals": x_vals,               # Values for selected strains
+            "strains": strains,             # Strain names (order matters!)
+            "output_file": output_file,
+            "file_delimiter": ","
+        }, f)
+    
+    return (output_file, tmp_json_file)
+#+END_SRC
+
+**Modified `run_correlation` Function:**
+
+#+BEGIN_SRC python
+def run_correlation(
+        dataset_or_path,                  # Can be list[str] OR str (LMDB path)
+        trait_vals: list[float],
+        strains: list[str],                # NEW: Required for LMDB mode
+        method: str,
+        delimiter: str,
+        tmpdir: str,
+        corr_type: str = "sample",
+        top_n: int = 500):
+    """Entry function to call rust correlation"""
+    
+    correlation_command = current_app.config["CORRELATION_COMMAND"]
+    
+    # Detect if dataset_or_path is an LMDB directory
+    if isinstance(dataset_or_path, str) and os.path.isdir(dataset_or_path):
+        # LMDB mode - no CSV generation needed
+        (output_file, json_file) = generate_json_file_for_lmdb(
+            lmdb_path=dataset_or_path,
+            strains=strains,
+            x_vals=trait_vals,
+            method=method,
+            tmp_dir=tmpdir
+        )
+    else:
+        # Legacy CSV mode
+        (tmp_dir_path, tmp_file) = generate_input_files(dataset_or_path, tmpdir)
+        (output_file, json_file) = generate_json_file(
+            tmp_dir=tmp_dir_path,
+            tmp_file=tmp_file,
+            method=method,
+            delimiter=delimiter,
+            x_vals=trait_vals
+        )
+    
+    # Execute Rust binary
+    command_list = [correlation_command, json_file, tmpdir]
+    subprocess.run(command_list, check=True, capture_output=True)
+    
+    return parse_correlation_output(output_file, corr_type, top_n)
+#+END_SRC
+
+* GN2 Integration
+
+**Modified `__compute_sample_corr__`:**
+
+#+BEGIN_SRC python
+def __compute_sample_corr__(start_vars, corr_type, method, n_top, 
+                            target_trait_info, tmpdir):
+    """Compute sample correlations using LMDB when available"""
+    
+    (this_dataset, this_trait, target_dataset, _) = target_trait_info
+    
+    # Get sample data as dict {strain: value}
+    sample_data = get_sample_corr_data(
+        sample_type=start_vars["corr_samples_group"],
+        sample_data=json.loads(start_vars["sample_vals"]),
+        dataset_samples=this_dataset.group.all_samples_ordered()
+    )
+    
+    if not sample_data:
+        return {}
+    
+    # Extract values and strains
+    sample_values = list(sample_data.values())  # [1.2, 3.4, 5.6]
+    sample_strains = list(sample_data.keys())   # ["BXD1", "BXD2", "BXD5"]
+    
+    # Check if LMDB exists for target dataset
+    lmdb_path = get_lmdb_path(target_dataset.name)
+    
+    if lmdb_path and os.path.exists(lmdb_path):
+        # FAST PATH: Use LMDB directly
+        return run_correlation(
+            lmdb_path,              # Path to LMDB directory
+            sample_values,          # x values
+            sample_strains,         # strain names for x values
+            method,
+            ",",
+            tmpdir,
+            corr_type=corr_type,
+            top_n=n_top
+        )
+    else:
+        # FALLBACK: Use legacy CSV mode (fetches from DB)
+        target_dataset.get_trait_data(list(sample_data.keys()))
+        target_data = format_as_csv_rows(target_dataset.trait_data)
+        
+        return run_correlation(
+            target_data,
+            sample_values,
+            sample_strains,
+            method,
+            ",",
+            tmpdir,
+            corr_type=corr_type,
+            top_n=n_top
+        )
+#+END_SRC
+
+**Helper: `get_lmdb_path`**
+
+#+BEGIN_SRC python
+def get_lmdb_path(dataset_name: str) -> Optional[str]:
+    """Get LMDB path for a dataset if available"""
+    
+    # Option 1: Check configured LMDB directory
+    lmdb_base = current_app.config.get("LMDB_DATA_PATH", "/var/lmdb_data")
+    lmdb_path = os.path.join(lmdb_base, dataset_name)
+    
+    if os.path.isdir(lmdb_path):
+        return lmdb_path
+    
+    # Option 2: Could query database for LMDB location
+    # with database_connection(SQL_URI) as conn:
+    #     cursor.execute("SELECT lmdb_path FROM DatasetLMDB WHERE name = %s", 
+    #                    (dataset_name,))
+    #     result = cursor.fetchone()
+    #     if result and os.path.isdir(result[0]):
+    #         return result[0]
+    
+    return None
+#+END_SRC
+
+* Suggested Improvements to lmdb_metadata.py
+
+The current LMDB dumper works well, but could be enhanced to better support
+strain-based correlation:
+
+**1. Add Strain Index Mapping to Metadata**
+
+Current metadata has:
+#+BEGIN_SRC python
+{
+    "strains": ["BXD1", "BXD2", "BXD5", ...],
+    "columns": 50
+}
+#+END_SRC
+
+Suggested addition:
+#+BEGIN_SRC python
+{
+    "strains": ["BXD1", "BXD2", "BXD5", ...],
+    "strain_indices": {          # NEW
+        "BXD1": 0,
+        "BXD2": 1,
+        "BXD5": 2,
+        ...
+    },
+    "columns": 50
+}
+#+END_SRC
+
+**Benefits:**
+- O(1) strain lookup in Rust (no need to build HashMap)
+- Validates strain order at dump time
+- Self-documenting format
+
+**Implementation in batch_lmdb_metadata.py:**
+
+#+BEGIN_SRC python
+def build_metadata(probeset: ProbeSetMatrix, dataset_info: DatasetInfo) -> dict:
+    """Derive metadata with strain indices for fast lookup"""
+    rows, columns = probeset.matrix.shape
+    
+    # Build strain index mapping
+    strain_indices = {strain: idx for idx, strain in enumerate(probeset.strains)}
+    
+    return {
+        "rows": rows,
+        "columns": columns,
+        "dtype": str(probeset.matrix.dtype),
+        "order": "C",
+        "endian": "little",
+        "traits": probeset.traits,
+        "strains": probeset.strains,
+        "strain_indices": strain_indices,  # NEW
+        "transposed": False,
+        "has_se": probeset.se_matrix is not None,
+        "dataset_id": dataset_info.id,
+        "dataset_name": dataset_info.name,
+        ...
+    }
+#+END_SRC
+
+**2. Validate Strain Order Consistency**
+
+Add validation to ensure strain order matches expected order:
+
+#+BEGIN_SRC python
+def validate_strain_order(strains: list[str], dataset_name: str) -> None:
+    """Validate that strains are in expected order for this dataset"""
+    
+    # Could check against a canonical strain order for the species/group
+    expected_order = get_expected_strains(dataset_name)
+    
+    if expected_order and set(strains) != set(expected_order):
+        logger.warning(
+            f"Strain mismatch in {dataset_name}: "
+            f"expected {len(expected_order)} strains, got {len(strains)}"
+        )
+    
+    # Ensure no duplicates
+    if len(strains) != len(set(strains)):
+        raise ValueError(f"Duplicate strains found in {dataset_name}")
+#+END_SRC
+
+**3. Add Dataset Registry**
+
+Create an index file for all dumped datasets:
+
+#+BEGIN_SRC python
+def create_dataset_registry(lmdb_base_path: str, datasets: list[DatasetInfo]) -> None:
+    """Create registry.json for fast dataset lookup"""
+    
+    registry = {
+        "created": datetime.now().isoformat(),
+        "datasets": {
+            d.name: {
+                "path": os.path.join(lmdb_base_path, d.name),
+                "id": d.id,
+                "traits": d.trait_count,
+                "strains": d.strain_count,
+                "created": d.create_time
+            }
+            for d in datasets
+        }
+    }
+    
+    with open(os.path.join(lmdb_base_path, "registry.json"), "w") as f:
+        json.dump(registry, f, indent=2)
+#+END_SRC
+
+**Benefits:**
+- GN2/GN3 can quickly check if LMDB exists without filesystem scan
+- Can validate strain compatibility before calling Rust
+- Enables dataset discovery
+
+**4. Store Strain-Specific Metadata**
+
+For datasets with many strains, consider storing per-strain statistics:
+
+#+BEGIN_SRC python
+{
+    "strain_stats": {
+        "BXD1": {"mean": 5.2, "std": 1.3, "missing": 0.02},
+        "BXD2": {"mean": 5.5, "std": 1.1, "missing": 0.01},
+        ...
+    }
+}
+#+END_SRC
+
+This could help with:
+- Quality control (detect outlier strains)
+- Pre-computed normalization
+- Missing value handling strategies
+
+**5. Add Checksum for Data Integrity**
+
+Add MD5 checksum of matrix data to detect corruption:
+
+#+BEGIN_SRC python
+import hashlib
+
+def add_checksum(metadata: dict, matrix_bytes: bytes) -> dict:
+    """Add data checksum for integrity verification"""
+    metadata["matrix_checksum"] = hashlib.md5(matrix_bytes).hexdigest()
+    metadata["matrix_size_bytes"] = len(matrix_bytes)
+    return metadata
+#+END_SRC
+
+* Data Flow Summary
+
+**Complete Flow with LMDB Optimization:**
+
+#+BEGIN_SRC
+User Request (GN2 Web)
+       │
+       ▼
+┌─────────────────┐
+│ GN2: Get sample │
+│ data from form  │
+│ {strain: value} │
+└────────┬────────┘
+         │
+         ▼
+┌──────────────────────────┐
+│ Check LMDB availability  │
+│ get_lmdb_path(dataset)   │
+└────────┬─────────────────┘
+         │
+    ┌────┴────┐
+    │         │
+    ▼         ▼
+LMDB     No LMDB
+exists     │
+    │      ▼
+    │  Fetch from MySQL
+    │  (slow path)
+    │
+    ▼
+┌─────────────────────────────┐
+│ GN3: run_correlation(       │
+│   lmdb_path,                │
+│   x_vals=[1.2, 3.4, 5.6],   │
+│   strains=["BXD1",...],     │
+│   method="pearson"          │
+│ )                           │
+└────────┬────────────────────┘
+         │
+         ▼
+┌─────────────────────────────┐
+│ Generate JSON:              │
+│ {                           │
+│   "file_path": "/lmdb/...", │
+│   "x_vals": [1.2, 3.4, 5.6],│
+│   "strains": ["BXD1",...],  │
+│   "method": "pearson"       │
+│ }                           │
+└────────┬────────────────────┘
+         │
+         ▼
+┌─────────────────────────────┐
+│ Rust: correlation_rust      │
+│                             │
+│ 1. Detect file_path is dir  │
+│ 2. Open LMDB                │
+│ 3. Read metadata            │
+│ 4. Map strains to columns   │
+│ 5. Iterate traits           │
+│ 6. Extract columns by index │
+│ 7. Correlate                │
+└────────┬────────────────────┘
+         │
+         ▼
+    Results file
+         │
+         ▼
+    Return to GN2
+#+END_SRC
+
+* Backward Compatibility
+
+**Important:** The changes maintain backward compatibility:
+
+1. **Rust:** `strains` field is `Option<Vec<String>>` - if not provided,
+   uses all columns (legacy behavior)
+
+2. **GN3:** Can detect if running in LMDB mode (path is directory) vs 
+   CSV mode (path is file or data is list)
+
+3. **GN2:** Falls back to MySQL if LMDB not available
+
+**Migration Strategy:**
+1. Deploy LMDB dumps for common datasets
+2. Update Rust to support strain selection
+3. Update GN3 to pass strains
+4. Update GN2 to check for LMDB first
+5. Gradually migrate datasets to LMDB
+
+* Performance Impact
+
+| Metric | Before (MySQL) | Before (CSV) | After (LMDB) |
+|--------|----------------|--------------|--------------|
+| Data Loading | ~2-10s | ~0.5-2s | ~10-50ms |
+| Strain Alignment | N/A (query filters) | N/A (CSV has exact data) | ~1ms (index lookup) |
+| Memory Usage | Connection overhead | Full matrix in memory | Memory-mapped (OS managed) |
+| Total Correlation | ~seconds | ~1-5s | ~100-500ms |
+
+**Note:** LMDB correlation speed is dominated by the actual computation,
+not data loading, which is the ideal state.
