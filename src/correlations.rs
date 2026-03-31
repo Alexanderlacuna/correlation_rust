@@ -201,9 +201,9 @@ impl<'a> Compute<'a> {
             .map(|(i, s)| (s.as_str(), i))
             .collect();
 
-        // Determine which columns to extract based on strains
-        // Filters out strains that don't exist in the dataset
-        let (column_indices, filtered_x_vals): (Vec<usize>, Vec<f64>) = match self.strains {
+        // STEP 1: Clean input - filter out NaN values from x_vals at the start
+        // This ensures we don't carry invalid data through the entire pipeline
+        let (clean_strains, clean_x_vals): (Option<Vec<String>>, Vec<f64>) = match self.strains {
             Some(strains) => {
                 // Validate strains array matches x_vals array
                 if strains.len() != self.x_vals.len() {
@@ -218,6 +218,70 @@ impl<'a> Compute<'a> {
                     ));
                 }
 
+                // Filter out NaN values from input, keeping track of valid strains
+                let mut valid_strains = Vec::new();
+                let mut valid_x_vals = Vec::new();
+                let mut nan_count = 0;
+                
+                for (i, (strain, x_val)) in strains.iter().zip(self.x_vals.iter()).enumerate() {
+                    if x_val.is_nan() {
+                        nan_count += 1;
+                        continue; // Skip this sample - it has invalid input data
+                    }
+                    valid_strains.push(strain.clone());
+                    valid_x_vals.push(*x_val);
+                }
+                
+                if nan_count > 0 {
+                    eprintln!(
+                        "Warning: Filtered out {} samples with NaN x_vals. Using {} of {} input samples.",
+                        nan_count,
+                        valid_x_vals.len(),
+                        self.x_vals.len()
+                    );
+                }
+                
+                (Some(valid_strains), valid_x_vals)
+            }
+            None => {
+                // No strains specified - filter NaN from x_vals only
+                let valid_x_vals: Vec<f64> = self.x_vals
+                    .iter()
+                    .copied()
+                    .filter(|x| !x.is_nan())
+                    .collect();
+                
+                let nan_count = self.x_vals.len() - valid_x_vals.len();
+                if nan_count > 0 {
+                    eprintln!(
+                        "Warning: Filtered out {} samples with NaN x_vals. Using {} of {} input samples.",
+                        nan_count,
+                        valid_x_vals.len(),
+                        self.x_vals.len()
+                    );
+                }
+                
+                (None, valid_x_vals)
+            }
+        };
+        
+        // STEP 2: Validate we have enough valid samples after NaN filtering
+        if clean_x_vals.len() < 4 {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!(
+                    "Insufficient valid samples: {} (need at least 4). \
+                    Input had {} samples, {} were NaN.",
+                    clean_x_vals.len(),
+                    self.x_vals.len(),
+                    self.x_vals.len() - clean_x_vals.len()
+                ),
+            ));
+        }
+
+        // STEP 3: Map strains to column indices, filtering out missing strains from dataset
+        let (column_indices, filtered_x_vals): (Vec<usize>, Vec<f64>) = match clean_strains {
+            Some(strains) => {
                 // Map strain names to their column indices, filtering out missing strains
                 let mut indices = Vec::new();
                 let mut x_vals_filtered = Vec::new();
@@ -225,25 +289,44 @@ impl<'a> Compute<'a> {
                 for (i, strain) in strains.iter().enumerate() {
                     if let Some(&idx) = strain_to_idx.get(strain.as_str()) {
                         indices.push(idx);
-                        x_vals_filtered.push(self.x_vals[i]);
+                        x_vals_filtered.push(clean_x_vals[i]);
                     }
                 }
 
-                // Warn if some strains were dropped
+                // Warn if some strains were dropped (not found in dataset)
                 if indices.len() != strains.len() {
                     eprintln!(
-                        "Warning: Filtered out {} missing strains. Using {} of {} requested strains.",
+                        "Warning: Filtered out {} missing strains from dataset. \
+                        Using {} of {} requested strains.",
                         strains.len() - indices.len(),
                         indices.len(),
                         strains.len()
                     );
                 }
                 
+                // Validate we still have enough samples after dataset filtering
+                if indices.len() < 4 {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        format!(
+                            "Insufficient matching strains in dataset: {} (need at least 4). \
+                            Requested {} strains, {} found in dataset.",
+                            indices.len(),
+                            strains.len(),
+                            indices.len()
+                        ),
+                    ));
+                }
+                
                 (indices, x_vals_filtered)
             }
             None => {
                 // No strains specified - use all columns (legacy mode)
-                ((0..metadata.columns).collect(), self.x_vals.to_vec())
+                // But still limited by clean_x_vals length
+                let n_samples = clean_x_vals.len().min(metadata.columns);
+                let indices: Vec<usize> = (0..n_samples).collect();
+                let x_vals_filtered: Vec<f64> = clean_x_vals[..n_samples].to_vec();
+                (indices, x_vals_filtered)
             }
         };
 
